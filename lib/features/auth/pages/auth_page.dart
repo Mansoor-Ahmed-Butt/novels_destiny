@@ -154,7 +154,7 @@ class _AuthPageState extends State<AuthPage> {
                           label: 'Password',
                           hint: '••••••••',
                           controller: passwordController,
-                          obscureText: true,
+                          isPassword: true,
                           prefixIcon: const Icon(Icons.lock_outline, size: 20),
                         ),
                         const SizedBox(height: AppSpacing.xl),
@@ -212,6 +212,8 @@ class _AuthPageState extends State<AuthPage> {
                       label: 'Reader (Aria)',
                       icon: Icons.auto_stories,
                       onTap: () {
+                        emailController.text = 'aria.reader@destiny.com';
+                        passwordController.text = 'secret123';
                         controller.signIn('aria.reader@destiny.com', 'secret123');
                       },
                     ),
@@ -219,6 +221,8 @@ class _AuthPageState extends State<AuthPage> {
                       label: 'Writer (Julian)',
                       icon: Icons.edit_note,
                       onTap: () {
+                        emailController.text = 'julian.author@destiny.com';
+                        passwordController.text = 'secret123';
                         controller.signIn('julian.author@destiny.com', 'secret123');
                       },
                     ),
@@ -226,6 +230,8 @@ class _AuthPageState extends State<AuthPage> {
                       label: 'Admin (Elena)',
                       icon: Icons.admin_panel_settings,
                       onTap: () {
+                        emailController.text = 'admin@novelsdestiny.com';
+                        passwordController.text = 'secret123';
                         controller.signIn('admin@novelsdestiny.com', 'secret123');
                       },
                     ),

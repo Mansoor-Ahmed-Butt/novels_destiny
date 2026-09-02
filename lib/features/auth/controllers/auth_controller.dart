@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:get/get.dart';
+import '../../../app/routes/app_routes.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../../domain/usecases/auth_usecases.dart';
+import '../../main_shell/main_shell_page.dart';
 import '../states/auth_state.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/services/logger_service.dart';
@@ -48,6 +50,11 @@ class AuthController extends GetxController {
       currentUser.value = user;
       state.value = Authenticated(user);
       _logger.info('User signed in: ${user.email} (${user.role.name})');
+
+      if (Get.isRegistered<MainShellController>()) {
+        Get.find<MainShellController>().setInitialTabForRole(user.role);
+      }
+      Get.offAllNamed(AppRoutes.shell);
     } on AppFailure catch (e) {
       state.value = AuthFailureState(e.message);
       _logger.warning('Sign-in failure: ${e.message}');
@@ -64,6 +71,11 @@ class AuthController extends GetxController {
       currentUser.value = user;
       state.value = Authenticated(user);
       _logger.info('User signed up: ${user.email} as ${user.role.name}');
+
+      if (Get.isRegistered<MainShellController>()) {
+        Get.find<MainShellController>().setInitialTabForRole(user.role);
+      }
+      Get.offAllNamed(AppRoutes.shell);
     } on AppFailure catch (e) {
       state.value = AuthFailureState(e.message);
     } catch (e) {
@@ -84,6 +96,10 @@ class AuthController extends GetxController {
       currentUser.value = updated;
       state.value = Authenticated(updated);
       _logger.info('Role switched to: ${newRole.name}');
+
+      if (Get.isRegistered<MainShellController>()) {
+        Get.find<MainShellController>().setInitialTabForRole(newRole);
+      }
     } catch (e) {
       _logger.error('Failed to switch role', e);
     }

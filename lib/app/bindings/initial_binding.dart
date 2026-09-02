@@ -24,6 +24,7 @@ import '../../features/library/controllers/library_controller.dart';
 import '../../features/writer_dashboard/controllers/writer_dashboard_controller.dart';
 import '../../features/admin_dashboard/controllers/admin_dashboard_controller.dart';
 import '../../features/profile/controllers/profile_controller.dart';
+import '../../features/main_shell/main_shell_page.dart';
 
 class InitialBinding extends Bindings {
   @override
@@ -54,6 +55,7 @@ class InitialBinding extends Bindings {
     Get.put<AuthController>(AuthController(Get.find(), Get.find()), permanent: true);
 
     // 6. Navigation Shell Controllers
+    Get.put<MainShellController>(MainShellController(Get.find()), permanent: true);
     Get.put<HomeController>(HomeController(Get.find(), Get.find()), permanent: true);
     Get.put<LibraryController>(LibraryController(Get.find(), Get.find()), permanent: true);
     Get.put<WriterDashboardController>(WriterDashboardController(Get.find(), Get.find(), Get.find()), permanent: true);

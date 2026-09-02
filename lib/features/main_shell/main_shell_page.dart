@@ -11,10 +11,36 @@ import '../admin_dashboard/pages/admin_dashboard_page.dart';
 import '../profile/pages/profile_page.dart';
 
 class MainShellController extends GetxController {
+  final AuthController _authController;
   final RxInt selectedIndex = 0.obs;
+
+  MainShellController(this._authController);
+
+  @override
+  void onInit() {
+    super.onInit();
+    final role = _authController.currentUser.value?.role;
+    if (role != null) {
+      setInitialTabForRole(role);
+    }
+  }
 
   void changeIndex(int index) {
     selectedIndex.value = index;
+  }
+
+  void setInitialTabForRole(UserRole role) {
+    switch (role) {
+      case UserRole.admin:
+        selectedIndex.value = 3; // Admin Dashboard
+        break;
+      case UserRole.writer:
+        selectedIndex.value = 2; // Writer Studio
+        break;
+      case UserRole.reader:
+        selectedIndex.value = 0; // Discover
+        break;
+    }
   }
 }
 
@@ -23,7 +49,9 @@ class MainShellPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shellController = Get.put(MainShellController());
+    final shellController = Get.isRegistered<MainShellController>()
+        ? Get.find<MainShellController>()
+        : Get.put(MainShellController(Get.find<AuthController>()));
     final authController = Get.find<AuthController>();
 
     return Obx(() {

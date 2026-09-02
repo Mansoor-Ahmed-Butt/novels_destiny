@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
 
-class AppTextField extends StatelessWidget {
+class AppTextField extends StatefulWidget {
   final String? label;
   final String? hint;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final bool obscureText;
+  final bool isPassword;
   final TextInputType keyboardType;
   final int maxLines;
   final int? minLines;
@@ -24,6 +25,7 @@ class AppTextField extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.obscureText = false,
+    this.isPassword = false,
     this.keyboardType = TextInputType.text,
     this.maxLines = 1,
     this.minLines,
@@ -34,14 +36,55 @@ class AppTextField extends StatelessWidget {
   });
 
   @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  late bool _obscureText;
+
+  @override
+  void initState() {
+    super.initState();
+    _obscureText = widget.isPassword || widget.obscureText;
+  }
+
+  @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.obscureText != widget.obscureText || oldWidget.isPassword != widget.isPassword) {
+      if (!widget.isPassword) {
+        _obscureText = widget.obscureText;
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    Widget? effectiveSuffixIcon = widget.suffixIcon;
+    if (widget.isPassword) {
+      effectiveSuffixIcon = IconButton(
+        icon: Icon(
+          _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          size: 20,
+          color: _obscureText ? AppColors.textTertiary : AppColors.primary,
+        ),
+        splashRadius: 18,
+        tooltip: _obscureText ? 'Show password' : 'Hide password',
+        onPressed: () {
+          setState(() {
+            _obscureText = !_obscureText;
+          });
+        },
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (label != null) ...[
+        if (widget.label != null) ...[
           Text(
-            label!,
+            widget.label!,
             style: AppTextStyles.labelLarge.copyWith(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w600,
@@ -50,27 +93,27 @@ class AppTextField extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
         ],
         TextField(
-          controller: controller,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
-          obscureText: obscureText,
-          keyboardType: keyboardType,
-          maxLines: obscureText ? 1 : maxLines,
-          minLines: minLines,
-          enabled: enabled,
+          controller: widget.controller,
+          onChanged: widget.onChanged,
+          onSubmitted: widget.onSubmitted,
+          obscureText: _obscureText,
+          keyboardType: widget.isPassword ? TextInputType.visiblePassword : widget.keyboardType,
+          maxLines: _obscureText ? 1 : widget.maxLines,
+          minLines: widget.minLines,
+          enabled: widget.enabled,
           style: AppTextStyles.bodyLarge,
           decoration: InputDecoration(
-            hintText: hint,
+            hintText: widget.hint,
             hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
-            errorText: errorText,
+            errorText: widget.errorText,
             filled: true,
             fillColor: AppColors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.l,
               vertical: AppSpacing.m,
             ),
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
+            prefixIcon: widget.prefixIcon,
+            suffixIcon: effectiveSuffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadii.m),
               borderSide: const BorderSide(color: AppColors.cardBorder),
