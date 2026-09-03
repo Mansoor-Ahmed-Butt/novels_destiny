@@ -38,4 +38,31 @@ class UserRepositoryImpl implements IUserRepository {
       throw UnknownFailure('Failed to update user status: $e');
     }
   }
+
+  @override
+  Future<List<UserEntity>> getPendingWriters() async {
+    try {
+      return _dataSource.getPendingWriters();
+    } catch (e) {
+      throw UnknownFailure('Failed to fetch pending writer applications: $e');
+    }
+  }
+
+  @override
+  Future<void> approveWriter(String id) async {
+    try {
+      _dataSource.approveWriter(id);
+    } catch (e) {
+      throw UnknownFailure('Failed to approve writer: $e');
+    }
+  }
+
+  @override
+  Future<void> rejectWriter(String id) async {
+    try {
+      _dataSource.rejectWriter(id);
+    } catch (e) {
+      throw UnknownFailure('Failed to reject writer: $e');
+    }
+  }
 }

@@ -12,6 +12,8 @@ class AuthUseCases {
   Future<UserEntity> signIn(String email, String password) =>
       _authRepository.signInWithEmailPassword(email, password);
 
+  Future<UserEntity> signInWithGoogle() => _authRepository.signInWithGoogle();
+
   Future<UserEntity> signUp(String email, String password, String displayName, UserRole role) =>
       _authRepository.signUpWithEmailPassword(email, password, displayName, role);
 

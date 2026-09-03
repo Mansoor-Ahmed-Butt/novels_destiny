@@ -19,6 +19,7 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   final AuthController controller = Get.find<AuthController>();
   bool isSignUp = false;
+  bool isAdminMode = false;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController(text: 'aria.reader@destiny.com');
@@ -49,20 +50,28 @@ class _AuthPageState extends State<AuthPage> {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
+                    color: isAdminMode ? AppColors.accent : AppColors.primary,
                     borderRadius: BorderRadius.circular(AppRadii.card),
                     boxShadow: AppShadows.card,
                   ),
-                  child: const Icon(Icons.auto_stories, color: AppColors.textInverse, size: 28),
+                  child: Icon(
+                    isAdminMode ? Icons.admin_panel_settings : Icons.auto_stories,
+                    color: AppColors.textInverse,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.l),
                 Text(
-                  'Novels Destiny',
+                  isAdminMode ? 'Admin Portal' : 'Novels Destiny',
                   style: AppTextStyles.displayMedium.copyWith(letterSpacing: -0.5),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  isSignUp ? 'Join our community of storytellers' : 'Sign in to access your library & studio',
+                  isSignUp
+                      ? 'Join our community of storytellers'
+                      : isAdminMode
+                          ? 'Sign in to access platform administration & moderation'
+                          : 'Sign in to access your library & studio',
                   style: AppTextStyles.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -85,7 +94,7 @@ class _AuthPageState extends State<AuthPage> {
                             decoration: BoxDecoration(
                               color: AppColors.errorLight,
                               borderRadius: BorderRadius.circular(AppRadii.m),
-                              border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
@@ -102,6 +111,75 @@ class _AuthPageState extends State<AuthPage> {
                           ),
                           const SizedBox(height: AppSpacing.m),
                         ],
+
+                        // Admin Portal Access Switch (Only on Sign In)
+                        if (!isSignUp) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isAdminMode
+                                  ? AppColors.accent.withValues(alpha: 0.08)
+                                  : AppColors.surface,
+                              borderRadius: BorderRadius.circular(AppRadii.m),
+                              border: Border.all(
+                                color: isAdminMode
+                                    ? AppColors.accent.withValues(alpha: 0.35)
+                                    : AppColors.cardBorder,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isAdminMode ? Icons.admin_panel_settings : Icons.shield_outlined,
+                                  size: 22,
+                                  color: isAdminMode ? AppColors.accent : AppColors.textTertiary,
+                                ),
+                                const SizedBox(width: AppSpacing.m),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Admin Mode Access',
+                                        style: AppTextStyles.labelMedium.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: isAdminMode ? AppColors.accent : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      Text(
+                                        isAdminMode
+                                            ? 'Administrator credentials enabled'
+                                            : 'Turn ON if logging in as an Admin',
+                                        style: AppTextStyles.bodySmall.copyWith(
+                                          fontSize: 11,
+                                          color: AppColors.textTertiary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Switch.adaptive(
+                                  value: isAdminMode,
+                                  activeColor: AppColors.accent,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      isAdminMode = val;
+                                      if (isAdminMode) {
+                                        emailController.text = 'admin@novelsdestiny.com';
+                                        passwordController.text = 'secret123';
+                                      } else {
+                                        emailController.text = 'aria.reader@destiny.com';
+                                        passwordController.text = 'secret123';
+                                      }
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                        ],
+
                         if (isSignUp) ...[
                           AppTextField(
                             label: 'Full Name',
@@ -138,6 +216,17 @@ class _AuthPageState extends State<AuthPage> {
                                   ),
                                 ],
                               ),
+                              if (selectedRole == UserRole.writer) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Note: Writer accounts undergo admin review before publishing access is unlocked.',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    fontSize: 11,
+                                    color: AppColors.warning,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           const SizedBox(height: AppSpacing.m),
@@ -159,29 +248,90 @@ class _AuthPageState extends State<AuthPage> {
                         ),
                         const SizedBox(height: AppSpacing.xl),
                         AppPrimaryButton(
-                          label: isSignUp ? 'Create Account' : 'Sign In',
+                          label: isSignUp
+                              ? (selectedRole == UserRole.writer ? 'Submit Writer Application' : 'Create Reader Account')
+                              : (isAdminMode ? 'Sign In to Admin Portal' : 'Sign In'),
                           isLoading: isLoading,
                           onPressed: () {
                             if (isSignUp) {
                               controller.signUp(
-                                emailController.text,
-                                passwordController.text,
-                                nameController.text.isEmpty ? 'Reader' : nameController.text,
+                                emailController.text.trim(),
+                                passwordController.text.trim(),
+                                nameController.text.isEmpty
+                                    ? (selectedRole == UserRole.writer ? 'New Writer' : 'Reader')
+                                    : nameController.text.trim(),
                                 selectedRole,
                               );
                             } else {
                               controller.signIn(
-                                emailController.text,
-                                passwordController.text,
+                                emailController.text.trim(),
+                                passwordController.text.trim(),
                               );
                             }
                           },
                         ),
                         const SizedBox(height: AppSpacing.m),
+
+                        // Google Sign In (Reader Default)
+                        if (!isSignUp && !isAdminMode) ...[
+                          OutlinedButton(
+                            onPressed: isLoading ? null : () => controller.signInWithGoogle(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(AppRadii.m),
+                              ),
+                              side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
+                              backgroundColor: AppColors.surface,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'G',
+                                      style: TextStyle(
+                                        color: Color(0xFF4285F4),
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 14,
+                                        fontFamily: 'sans-serif',
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.s),
+                                Text(
+                                  'Sign in with Google',
+                                  style: AppTextStyles.labelMedium.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                        ],
+
                         TextButton(
                           onPressed: () {
                             setState(() {
                               isSignUp = !isSignUp;
+                              if (isSignUp) {
+                                isAdminMode = false;
+                                emailController.text = '';
+                                passwordController.text = '';
+                              } else {
+                                emailController.text = 'aria.reader@destiny.com';
+                                passwordController.text = 'secret123';
+                              }
                             });
                           },
                           child: Text(
@@ -212,6 +362,7 @@ class _AuthPageState extends State<AuthPage> {
                       label: 'Reader (Aria)',
                       icon: Icons.auto_stories,
                       onTap: () {
+                        setState(() => isAdminMode = false);
                         emailController.text = 'aria.reader@destiny.com';
                         passwordController.text = 'secret123';
                         controller.signIn('aria.reader@destiny.com', 'secret123');
@@ -221,15 +372,27 @@ class _AuthPageState extends State<AuthPage> {
                       label: 'Writer (Julian)',
                       icon: Icons.edit_note,
                       onTap: () {
+                        setState(() => isAdminMode = false);
                         emailController.text = 'julian.author@destiny.com';
                         passwordController.text = 'secret123';
                         controller.signIn('julian.author@destiny.com', 'secret123');
                       },
                     ),
                     AppPillBadge(
+                      label: 'Pending Writer (Kaelen)',
+                      icon: Icons.hourglass_top_rounded,
+                      onTap: () {
+                        setState(() => isAdminMode = false);
+                        emailController.text = 'kaelen.writer@destiny.com';
+                        passwordController.text = 'secret123';
+                        controller.signIn('kaelen.writer@destiny.com', 'secret123');
+                      },
+                    ),
+                    AppPillBadge(
                       label: 'Admin (Elena)',
                       icon: Icons.admin_panel_settings,
                       onTap: () {
+                        setState(() => isAdminMode = true);
                         emailController.text = 'admin@novelsdestiny.com';
                         passwordController.text = 'secret123';
                         controller.signIn('admin@novelsdestiny.com', 'secret123');

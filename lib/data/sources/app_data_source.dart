@@ -72,16 +72,31 @@ class AppDataSource {
       email: 'admin@novelsdestiny.com',
       photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
       role: UserRole.admin,
+      approvalStatus: ApprovalStatus.approved,
       isActive: true,
       createdAt: DateTime.now().subtract(const Duration(days: 200)),
       updatedAt: DateTime.now(),
       bio: 'Platform Administrator & Chief Editor.',
     );
 
+    final pendingWriterUser = UserModel(
+      id: 'writer_pending_1',
+      displayName: 'Kaelen Cross',
+      email: 'kaelen.writer@destiny.com',
+      photoUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      role: UserRole.writer,
+      approvalStatus: ApprovalStatus.pending,
+      isActive: true,
+      createdAt: DateTime.now().subtract(const Duration(hours: 4)),
+      updatedAt: DateTime.now().subtract(const Duration(hours: 4)),
+      bio: 'Aspiring speculative & cyberpunk author. Applying to publish series "Neon Constellations".',
+    );
+
     _users[readerUser.id] = readerUser;
     _users[writerUser.id] = writerUser;
     _users[adminUser.id] = adminUser;
-    _currentUser = readerUser; // default active user is Reader
+    _users[pendingWriterUser.id] = pendingWriterUser;
+    _currentUser = null; // Unauthenticated by default: shows Sign In page
 
     // 2. Seed Novels
     final novel1 = NovelModel(
@@ -618,7 +633,41 @@ Kai adjusted the manual helm. "Prepare the jump stabilizers. We\'re going in."''
   // --- Users ---
   List<UserModel> getAllUsers() => _users.values.toList();
 
+  List<UserModel> getPendingWriters() {
+    return _users.values
+        .where((u) => u.role == UserRole.writer && u.approvalStatus == ApprovalStatus.pending)
+        .toList();
+  }
+
   UserModel? getUserById(String id) => _users[id];
+
+  void approveWriter(String userId) {
+    final user = _users[userId];
+    if (user != null) {
+      final updated = user.copyWith(
+        approvalStatus: ApprovalStatus.approved,
+        updatedAt: DateTime.now(),
+      ) as UserModel;
+      _users[userId] = updated;
+      if (_currentUser?.id == userId) {
+        setCurrentUser(updated);
+      }
+    }
+  }
+
+  void rejectWriter(String userId) {
+    final user = _users[userId];
+    if (user != null) {
+      final updated = user.copyWith(
+        approvalStatus: ApprovalStatus.rejected,
+        updatedAt: DateTime.now(),
+      ) as UserModel;
+      _users[userId] = updated;
+      if (_currentUser?.id == userId) {
+        setCurrentUser(updated);
+      }
+    }
+  }
 
   void updateUser(UserModel user) {
     _users[user.id] = user;

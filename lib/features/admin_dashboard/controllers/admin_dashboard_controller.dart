@@ -15,6 +15,7 @@ class AdminDashboardController extends GetxController {
   final RxBool isLoading = true.obs;
   final Rx<PlatformAnalyticsEntity?> analytics = Rx<PlatformAnalyticsEntity?>(null);
   final RxList<UserEntity> users = <UserEntity>[].obs;
+  final RxList<UserEntity> pendingWriters = <UserEntity>[].obs;
   final RxList<NovelEntity> pendingNovels = <NovelEntity>[].obs;
   final RxList<ReportEntity> reports = <ReportEntity>[].obs;
   final RxInt selectedTab = 0.obs;
@@ -30,11 +31,13 @@ class AdminDashboardController extends GetxController {
       isLoading.value = true;
       final platformStats = await _adminUseCases.getPlatformAnalytics();
       final allUsers = await _adminUseCases.getAllUsers();
+      final pendingApplicants = await _adminUseCases.getPendingWriters();
       final pending = await _adminUseCases.getPendingNovels();
       final repList = await _adminUseCases.getReports();
 
       analytics.value = platformStats;
       users.assignAll(allUsers);
+      pendingWriters.assignAll(pendingApplicants);
       pendingNovels.assignAll(pending);
       reports.assignAll(repList);
 
@@ -42,6 +45,42 @@ class AdminDashboardController extends GetxController {
     } catch (e) {
       isLoading.value = false;
       _logger.error('Failed to load admin metrics', e);
+    }
+  }
+
+  Future<void> approveWriter(UserEntity writer) async {
+    try {
+      await _adminUseCases.approveWriter(writer.id);
+      pendingWriters.removeWhere((w) => w.id == writer.id);
+      final idx = users.indexWhere((u) => u.id == writer.id);
+      if (idx >= 0) {
+        users[idx] = writer.copyWith(approvalStatus: ApprovalStatus.approved);
+      }
+      Get.snackbar(
+        'Writer Approved',
+        '${writer.displayName} has been approved and granted Writer Studio access.',
+        snackPosition: SnackPosition.TOP,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to approve writer');
+    }
+  }
+
+  Future<void> rejectWriter(UserEntity writer) async {
+    try {
+      await _adminUseCases.rejectWriter(writer.id);
+      pendingWriters.removeWhere((w) => w.id == writer.id);
+      final idx = users.indexWhere((u) => u.id == writer.id);
+      if (idx >= 0) {
+        users[idx] = writer.copyWith(approvalStatus: ApprovalStatus.rejected);
+      }
+      Get.snackbar(
+        'Application Rejected',
+        '${writer.displayName}\'s writer application was rejected.',
+        snackPosition: SnackPosition.TOP,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to reject writer');
     }
   }
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "454348386247",
+    "project_id": "novels-destiny",
+    "storage_bucket": "novels-destiny.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:454348386247:android:b27e1f4003a1ddf5b933e2",
+        "android_client_info": {
+          "package_name": "com.example.novels_destiny"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpb3ST28ugjwzHLpN1O-5j2NmdvkErumc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

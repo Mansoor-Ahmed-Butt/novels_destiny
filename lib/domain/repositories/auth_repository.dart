@@ -4,6 +4,7 @@ abstract class IAuthRepository {
   Stream<UserEntity?> authStateChanges();
   UserEntity? get currentUser;
   Future<UserEntity> signInWithEmailPassword(String email, String password);
+  Future<UserEntity> signInWithGoogle();
   Future<UserEntity> signUpWithEmailPassword(String email, String password, String displayName, UserRole role);
   Future<void> signOut();
   Future<UserEntity> switchRole(UserRole newRole);

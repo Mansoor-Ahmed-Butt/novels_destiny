@@ -7,6 +7,7 @@ class UserModel extends UserEntity {
     required super.email,
     super.photoUrl,
     required super.role,
+    super.approvalStatus = ApprovalStatus.approved,
     super.isActive = true,
     required super.createdAt,
     required super.updatedAt,
@@ -23,6 +24,10 @@ class UserModel extends UserEntity {
       role: UserRole.values.firstWhere(
         (r) => r.name == (json['role'] as String?),
         orElse: () => UserRole.reader,
+      ),
+      approvalStatus: ApprovalStatus.values.firstWhere(
+        (s) => s.name == (json['approvalStatus'] as String?),
+        orElse: () => ApprovalStatus.approved,
       ),
       isActive: json['isActive'] as bool? ?? true,
       createdAt: json['createdAt'] != null
@@ -45,6 +50,7 @@ class UserModel extends UserEntity {
       'email': email,
       'photoUrl': photoUrl,
       'role': role.name,
+      'approvalStatus': approvalStatus.name,
       'isActive': isActive,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
@@ -60,6 +66,7 @@ class UserModel extends UserEntity {
       email: entity.email,
       photoUrl: entity.photoUrl,
       role: entity.role,
+      approvalStatus: entity.approvalStatus,
       isActive: entity.isActive,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

@@ -18,6 +18,9 @@ class AdminUseCases {
   );
 
   Future<List<UserEntity>> getAllUsers() => _userRepository.getAllUsers();
+  Future<List<UserEntity>> getPendingWriters() => _userRepository.getPendingWriters();
+  Future<void> approveWriter(String id) => _userRepository.approveWriter(id);
+  Future<void> rejectWriter(String id) => _userRepository.rejectWriter(id);
   Future<void> updateUserStatus(String id, bool isActive) => _userRepository.updateUserStatus(id, isActive);
 
   Future<List<NovelEntity>> getPendingNovels() => _moderationRepository.getPendingNovels();

@@ -38,6 +38,29 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<UserEntity> signInWithGoogle() async {
+    try {
+      final googleUser = UserModel(
+        id: 'google_reader_${DateTime.now().millisecondsSinceEpoch}',
+        displayName: 'Google Reader',
+        email: 'reader.google@destiny.com',
+        photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        role: UserRole.reader,
+        approvalStatus: ApprovalStatus.approved,
+        isActive: true,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        bio: 'Joined via Google Sign-In.',
+      );
+      _dataSource.updateUser(googleUser);
+      _dataSource.setCurrentUser(googleUser);
+      return googleUser;
+    } catch (e) {
+      throw UnknownFailure('Failed to sign in with Google: $e');
+    }
+  }
+
+  @override
   Future<UserEntity> signUpWithEmailPassword(
     String email,
     String password,
@@ -51,14 +74,20 @@ class AuthRepositoryImpl implements IAuthRepository {
         throw const ValidationFailure('An account with this email already exists.');
       }
 
+      final approvalStatus = role == UserRole.writer
+          ? ApprovalStatus.pending
+          : ApprovalStatus.approved;
+
       final newUser = UserModel(
         id: const Uuid().v4(),
         displayName: displayName.trim(),
         email: email.trim(),
         role: role,
+        approvalStatus: approvalStatus,
         isActive: true,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        bio: role == UserRole.writer ? 'New writer applicant.' : null,
       );
 
       _dataSource.updateUser(newUser);

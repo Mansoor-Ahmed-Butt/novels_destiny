@@ -68,21 +68,28 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                       const SizedBox(height: AppSpacing.xl),
                     ],
 
-                    // Section Tabs: Moderation Queue, Reports, Users
-                    Row(
-                      children: [
-                        _buildTab('Moderation Queue (${controller.pendingNovels.length})', 0),
-                        const SizedBox(width: AppSpacing.s),
-                        _buildTab('User Reports (${controller.reports.length})', 1),
-                        const SizedBox(width: AppSpacing.s),
-                        _buildTab('Users (${controller.users.length})', 2),
-                      ],
+                    // Section Tabs: Writer Applications, Moderation Queue, Reports, Users
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildTab('Writer Applications (${controller.pendingWriters.length})', 0),
+                          const SizedBox(width: AppSpacing.s),
+                          _buildTab('Moderation Queue (${controller.pendingNovels.length})', 1),
+                          const SizedBox(width: AppSpacing.s),
+                          _buildTab('User Reports (${controller.reports.length})', 2),
+                          const SizedBox(width: AppSpacing.s),
+                          _buildTab('All Users (${controller.users.length})', 3),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.l),
 
                     if (controller.selectedTab.value == 0)
-                      _buildModerationTab()
+                      _buildWriterApplicationsTab()
                     else if (controller.selectedTab.value == 1)
+                      _buildModerationTab()
+                    else if (controller.selectedTab.value == 2)
                       _buildReportsTab()
                     else
                       _buildUsersTab(),
@@ -333,6 +340,138 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
               AppSecondaryButton(
                 label: u.isActive ? 'Suspend' : 'Activate',
                 onPressed: () => controller.toggleUserStatus(u),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildWriterApplicationsTab() {
+    if (controller.pendingWriters.isEmpty) {
+      return const AppEmptyState(
+        title: 'No Pending Writer Applications',
+        message: 'All incoming author registration requests have been reviewed and approved.',
+        icon: Icons.verified_user_outlined,
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: controller.pendingWriters.length,
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+      itemBuilder: (context, index) {
+        final writer = controller.pendingWriters[index];
+        return AppCard(
+          padding: const EdgeInsets.all(AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                    child: Text(
+                      writer.displayName.isNotEmpty ? writer.displayName[0] : 'W',
+                      style: const TextStyle(
+                        color: AppColors.warning,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                writer.displayName,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.s),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(AppRadii.pill),
+                                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                'AWAITING APPROVAL',
+                                style: AppTextStyles.labelSmall.copyWith(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.warning,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          writer.email,
+                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    'Applied ${_formatDate(writer.createdAt)}',
+                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+                  ),
+                ],
+              ),
+              if (writer.bio != null && writer.bio!.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.m),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.m),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(AppRadii.m),
+                  ),
+                  child: Text(
+                    '"${writer.bio}"',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.l),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => controller.rejectWriter(writer),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadii.m),
+                      ),
+                    ),
+                    icon: const Icon(Icons.close_rounded, size: 16),
+                    label: const Text('Reject'),
+                  ),
+                  const SizedBox(width: AppSpacing.m),
+                  AppPrimaryButton(
+                    label: 'Approve Writer',
+                    icon: Icons.check_circle_outline,
+                    onPressed: () => controller.approveWriter(writer),
+                  ),
+                ],
               ),
             ],
           ),

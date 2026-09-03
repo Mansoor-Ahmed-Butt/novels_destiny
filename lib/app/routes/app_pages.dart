@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'app_routes.dart';
 import '../../features/auth/pages/auth_page.dart';
+import '../../features/auth/pages/writer_pending_approval_page.dart';
 import '../../features/auth/bindings/auth_binding.dart';
 import '../../features/main_shell/main_shell_page.dart';
 import '../../features/novels/pages/novel_details_page.dart';
@@ -20,12 +21,17 @@ import '../../features/profile/bindings/profile_binding.dart';
 class AppPages {
   AppPages._();
 
-  static const initial = AppRoutes.shell;
+  static const initial = AppRoutes.auth;
 
   static final routes = [
     GetPage(
       name: AppRoutes.auth,
       page: () => const AuthPage(),
+      binding: AuthBinding(),
+    ),
+    GetPage(
+      name: AppRoutes.writerPendingApproval,
+      page: () => const WriterPendingApprovalPage(),
       binding: AuthBinding(),
     ),
     GetPage(

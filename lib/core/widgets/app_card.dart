@@ -27,28 +27,31 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(borderRadius ?? AppRadii.card);
 
-    Widget container = Container(
-      margin: margin,
-      padding: padding ?? const EdgeInsets.all(AppSpacing.l),
-      decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.card,
-        borderRadius: radius,
-        border: Border.all(
-          color: borderColor ?? AppColors.cardBorder,
-          width: 1.0,
+    Widget card = Material(
+      color: backgroundColor ?? AppColors.card,
+      borderRadius: radius,
+      child: Container(
+        margin: margin,
+        padding: padding ?? const EdgeInsets.all(AppSpacing.l),
+        decoration: BoxDecoration(
+          borderRadius: radius,
+          border: Border.all(
+            color: borderColor ?? AppColors.cardBorder,
+            width: 1.0,
+          ),
+          boxShadow: hasShadow ? AppShadows.card : null,
         ),
-        boxShadow: hasShadow ? AppShadows.card : null,
+        child: child,
       ),
-      child: child,
     );
 
     if (onTap != null) {
       return InkWell(
         onTap: onTap,
         borderRadius: radius,
-        child: container,
+        child: card,
       );
     }
-    return container;
+    return card;
   }
 }
