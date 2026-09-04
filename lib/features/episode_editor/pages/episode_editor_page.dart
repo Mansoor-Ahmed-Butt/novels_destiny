@@ -10,6 +10,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_confirm_dialog.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../controllers/episode_editor_controller.dart';
+import '../../../domain/entities/content_block_entity.dart';
 
 class EpisodeEditorPage extends StatelessWidget {
   const EpisodeEditorPage({super.key});
@@ -146,6 +147,109 @@ class EpisodeEditorPage extends StatelessWidget {
                               ),
                             ),
                           ),
+                          const SizedBox(height: AppSpacing.xl),
+
+                          // Content Blocks Section (Images, PDFs, Ads)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Ordered Content Blocks', style: AppTextStyles.labelLarge),
+                                  Text('Attach chapter images, PDF files, or inline ads', style: AppTextStyles.bodySmall),
+                                ],
+                              ),
+                              if (ctrl.isUploadingMedia.value)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          // Block Insertion Actions
+                          Wrap(
+                            spacing: AppSpacing.s,
+                            runSpacing: AppSpacing.s,
+                            children: [
+                              OutlinedButton.icon(
+                                onPressed: ctrl.isUploadingMedia.value ? null : ctrl.pickAndAddImage,
+                                icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                                label: const Text('Add Image'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: ctrl.isUploadingMedia.value ? null : ctrl.pickAndAddPdf,
+                                icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                                label: const Text('Add PDF'),
+                              ),
+                              OutlinedButton.icon(
+                                onPressed: ctrl.addAdBlock,
+                                icon: const Icon(Icons.ad_units_outlined, size: 18),
+                                label: const Text('Add Ad Placement'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          // Existing Blocks List
+                          if (ctrl.blocks.isNotEmpty)
+                            ReorderableListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: ctrl.blocks.length,
+                              onReorder: ctrl.reorderBlocks,
+                              itemBuilder: (context, index) {
+                                final block = ctrl.blocks[index];
+                                return Container(
+                                  key: ValueKey(block.id),
+                                  margin: const EdgeInsets.only(bottom: AppSpacing.s),
+                                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: AppSpacing.s),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceMuted,
+                                    borderRadius: BorderRadius.circular(AppRadii.s),
+                                    border: Border.all(color: AppColors.cardBorder),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        block.type == ContentBlockType.image
+                                            ? Icons.image_rounded
+                                            : block.type == ContentBlockType.pdf
+                                                ? Icons.picture_as_pdf_rounded
+                                                : block.type == ContentBlockType.ad
+                                                    ? Icons.ad_units_rounded
+                                                    : Icons.text_snippet_rounded,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      ),
+                                      const SizedBox(width: AppSpacing.m),
+                                      Expanded(
+                                        child: Text(
+                                          block.type == ContentBlockType.image
+                                              ? 'Image: ${block.caption ?? "Episode Image"}'
+                                              : block.type == ContentBlockType.pdf
+                                                  ? 'PDF: ${block.fileName ?? "Episode Document"}'
+                                                  : block.type == ContentBlockType.ad
+                                                      ? 'AdMob Placement (inline)'
+                                                      : 'Text Paragraph',
+                                          style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.error),
+                                        onPressed: () => ctrl.removeBlock(index),
+                                      ),
+                                      const Icon(Icons.drag_handle_rounded, size: 20, color: AppColors.textTertiary),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           const SizedBox(height: AppSpacing.xl),
 
                           // Publish vs Draft Actions

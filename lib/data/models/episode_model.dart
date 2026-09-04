@@ -1,4 +1,6 @@
 import '../../domain/entities/episode_entity.dart';
+import '../../domain/entities/content_block_entity.dart';
+import 'content_block_model.dart';
 
 class EpisodeModel extends EpisodeEntity {
   const EpisodeModel({
@@ -10,6 +12,7 @@ class EpisodeModel extends EpisodeEntity {
     required super.titleLowercase,
     super.summary,
     required super.content,
+    super.blocks = const [],
     required super.wordCount,
     super.status = EpisodeStatus.published,
     super.publishedAt,
@@ -18,7 +21,13 @@ class EpisodeModel extends EpisodeEntity {
     super.totalViews = 0,
   });
 
-  factory EpisodeModel.fromJson(Map<String, dynamic> json) {
+  factory EpisodeModel.fromJson(Map<String, dynamic> json, {List<ContentBlockEntity>? blocks}) {
+    final parsedBlocks = blocks ??
+        (json['blocks'] as List<dynamic>?)
+            ?.map((b) => ContentBlockModel.fromJson(Map<String, dynamic>.from(b as Map)))
+            .toList() ??
+        [];
+
     return EpisodeModel(
       id: json['id'] as String? ?? '',
       novelId: json['novelId'] as String? ?? '',
@@ -28,6 +37,7 @@ class EpisodeModel extends EpisodeEntity {
       titleLowercase: json['titleLowercase'] as String? ?? '',
       summary: json['summary'] as String?,
       content: json['content'] as String? ?? '',
+      blocks: parsedBlocks,
       wordCount: json['wordCount'] as int? ?? 0,
       status: EpisodeStatus.values.firstWhere(
         (s) => s.name == (json['status'] as String?),
@@ -56,6 +66,7 @@ class EpisodeModel extends EpisodeEntity {
       'titleLowercase': titleLowercase,
       'summary': summary,
       'content': content,
+      'blocks': blocks.map((b) => ContentBlockModel.fromEntity(b).toJson()).toList(),
       'wordCount': wordCount,
       'status': status.name,
       'publishedAt': publishedAt?.toIso8601String(),
@@ -75,6 +86,7 @@ class EpisodeModel extends EpisodeEntity {
       titleLowercase: entity.titleLowercase,
       summary: entity.summary,
       content: entity.content,
+      blocks: entity.blocks,
       wordCount: entity.wordCount,
       status: entity.status,
       publishedAt: entity.publishedAt,

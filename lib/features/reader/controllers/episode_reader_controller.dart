@@ -8,6 +8,7 @@ import '../../../domain/usecases/episode_usecases.dart';
 import '../../../core/services/logger_service.dart';
 import '../states/episode_reader_state.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../../core/services/ad_service.dart';
 
 class EpisodeReaderController extends GetxController {
   final String novelId;
@@ -169,7 +170,11 @@ class EpisodeReaderController extends GetxController {
   void goToNextEpisode() {
     final s = state.value;
     if (s is EpisodeReaderReady && s.nextEpisode != null) {
-      loadEpisode(s.nextEpisode!.id);
+      AdService().showInterstitial(
+        onDismiss: () {
+          loadEpisode(s.nextEpisode!.id);
+        },
+      );
     }
   }
 

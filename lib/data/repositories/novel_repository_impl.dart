@@ -3,12 +3,14 @@ import '../../domain/entities/novel_entity.dart';
 import '../../domain/entities/reading_progress_entity.dart';
 import '../../domain/repositories/novel_repository.dart';
 import '../sources/app_data_source.dart';
+import '../sources/firestore_data_source.dart';
 import '../models/novel_model.dart';
 import '../models/reading_progress_model.dart';
 import '../../core/errors/failures.dart';
 
 class NovelRepositoryImpl implements INovelRepository {
   final AppDataSource _dataSource;
+  final FirestoreDataSource _firestore = FirestoreDataSource();
 
   NovelRepositoryImpl(this._dataSource);
 
@@ -51,7 +53,16 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<NovelEntity?> getNovelById(String id) async {
     try {
-      return await _dataSource.getNovelById(id);
+      final local = await _dataSource.getNovelById(id);
+      if (local != null) return local;
+
+      // Try Firestore
+      final remote = await _firestore.getNovel(id);
+      if (remote != null) {
+        _dataSource.saveNovel(remote);
+        return remote;
+      }
+      return null;
     } catch (e) {
       throw UnknownFailure('Failed to get novel details: $e');
     }
@@ -76,9 +87,11 @@ class NovelRepositoryImpl implements INovelRepository {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ));
-      return await _dataSource.saveNovel(model);
+      final saved = await _dataSource.saveNovel(model);
+      await _firestore.saveNovel(model);
+      return saved;
     } catch (e) {
-      throw UnknownFailure('Failed to create novel draft: $e');
+      throw UnknownFailure('Failed to create novel: $e');
     }
   }
 
@@ -89,7 +102,9 @@ class NovelRepositoryImpl implements INovelRepository {
         titleLowercase: novel.title.toLowerCase(),
         updatedAt: DateTime.now(),
       ));
-      return await _dataSource.saveNovel(model);
+      final saved = await _dataSource.saveNovel(model);
+      await _firestore.saveNovel(model);
+      return saved;
     } catch (e) {
       throw UnknownFailure('Failed to update novel: $e');
     }
@@ -112,6 +127,7 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<void> toggleLikeNovel(String novelId, String userId) async {
     _dataSource.toggleLikeNovel(novelId, userId);
+    _firestore.incrementNovelLikes(novelId);
   }
 
   @override
@@ -121,7 +137,13 @@ class NovelRepositoryImpl implements INovelRepository {
 
   @override
   Future<void> toggleSaveNovel(String novelId, String userId) async {
+    final wasSaved = await isNovelSaved(novelId, userId);
     _dataSource.toggleSaveNovel(novelId, userId);
+    _firestore.toggleBookmark(
+      userId: userId,
+      novelId: novelId,
+      isBookmarked: !wasSaved,
+    );
   }
 
   @override
@@ -131,12 +153,16 @@ class NovelRepositoryImpl implements INovelRepository {
 
   @override
   Future<void> saveReadingProgress(String userId, ReadingProgressEntity progress) async {
-    _dataSource.saveReadingProgress(userId, ReadingProgressModel.fromEntity(progress));
+    final model = ReadingProgressModel.fromEntity(progress);
+    _dataSource.saveReadingProgress(userId, model);
+    _firestore.saveReadingProgress(userId: userId, progress: model);
   }
 
   @override
   Future<ReadingProgressEntity?> getReadingProgress(String userId, String novelId) async {
-    return _dataSource.getReadingProgress(userId, novelId);
+    final local = _dataSource.getReadingProgress(userId, novelId);
+    if (local != null) return local;
+    return _firestore.getReadingProgress(userId: userId, novelId: novelId);
   }
 
   @override

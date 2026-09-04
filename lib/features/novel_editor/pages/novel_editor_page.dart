@@ -112,8 +112,20 @@ class NovelEditorPage extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.l),
 
-                        // Cover URL / Presets
-                        Text('Cover Artwork', style: AppTextStyles.labelLarge),
+                        // Cover Artwork & Upload
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Cover Artwork', style: AppTextStyles.labelLarge),
+                            OutlinedButton.icon(
+                              onPressed: ctrl.isUploadingCover.value ? null : ctrl.pickAndUploadCover,
+                              icon: ctrl.isUploadingCover.value
+                                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Icon(Icons.cloud_upload_outlined, size: 16),
+                              label: Text(ctrl.isUploadingCover.value ? 'Uploading...' : 'Upload File (Supabase)'),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: AppSpacing.xs),
                         AppTextField(
                           hint: 'https://...',

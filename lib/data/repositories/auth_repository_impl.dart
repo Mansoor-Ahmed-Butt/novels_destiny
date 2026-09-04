@@ -1,12 +1,27 @@
+import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../sources/app_data_source.dart';
+import '../sources/firestore_data_source.dart';
 import '../models/user_model.dart';
 import '../../core/errors/failures.dart';
+import '../../core/services/notification_service.dart';
 
 class AuthRepositoryImpl implements IAuthRepository {
   final AppDataSource _dataSource;
+  final FirestoreDataSource _firestore = FirestoreDataSource();
+  
+  FirebaseAuth? get _firebaseAuth {
+    try {
+      if (Firebase.apps.isNotEmpty) {
+        return FirebaseAuth.instance;
+      }
+    } catch (_) {}
+    return null;
+  }
 
   AuthRepositoryImpl(this._dataSource);
 
@@ -21,15 +36,51 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<UserEntity> signInWithEmailPassword(String email, String password) async {
     try {
+      // 1. Attempt real Firebase Auth
+      UserCredential? credential;
+      try {
+        credential = await _firebaseAuth?.signInWithEmailAndPassword(
+          email: email.trim(),
+          password: password.trim(),
+        );
+      } catch (e) {
+        debugPrint('Firebase Auth signIn failed, checking demo credentials: $e');
+      }
+
+      if (credential?.user != null) {
+        final fbUser = credential!.user!;
+        var userDoc = await _firestore.getUser(fbUser.uid);
+        if (userDoc == null) {
+          userDoc = UserModel(
+            id: fbUser.uid,
+            displayName: fbUser.displayName ?? email.split('@').first,
+            email: fbUser.email ?? email,
+            photoUrl: fbUser.photoURL,
+            role: UserRole.reader,
+            approvalStatus: ApprovalStatus.approved,
+            isActive: true,
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+          await _firestore.saveUser(userDoc);
+        }
+
+        _dataSource.setCurrentUser(userDoc);
+        NotificationService().syncUserDeviceToken(userDoc.id);
+        return userDoc;
+      }
+
+      // 2. Demo accounts fallback
       final allUsers = _dataSource.getAllUsers();
       final user = allUsers.firstWhere(
         (u) => u.email.toLowerCase() == email.trim().toLowerCase(),
-        orElse: () => throw const NotFoundFailure('User not found with this email.'),
+        orElse: () => throw const NotFoundFailure('Invalid email or password. Please check your credentials.'),
       );
       if (!user.isActive) {
         throw const PermissionFailure('This account is suspended. Please contact support.');
       }
       _dataSource.setCurrentUser(user);
+      NotificationService().syncUserDeviceToken(user.id);
       return user;
     } catch (e) {
       if (e is AppFailure) rethrow;
@@ -52,8 +103,11 @@ class AuthRepositoryImpl implements IAuthRepository {
         updatedAt: DateTime.now(),
         bio: 'Joined via Google Sign-In.',
       );
+
+      await _firestore.saveUser(googleUser);
       _dataSource.updateUser(googleUser);
       _dataSource.setCurrentUser(googleUser);
+      NotificationService().syncUserDeviceToken(googleUser.id);
       return googleUser;
     } catch (e) {
       throw UnknownFailure('Failed to sign in with Google: $e');
@@ -68,18 +122,35 @@ class AuthRepositoryImpl implements IAuthRepository {
     UserRole role,
   ) async {
     try {
-      final allUsers = _dataSource.getAllUsers();
-      final existing = allUsers.any((u) => u.email.toLowerCase() == email.trim().toLowerCase());
-      if (existing) {
-        throw const ValidationFailure('An account with this email already exists.');
-      }
-
       final approvalStatus = role == UserRole.writer
           ? ApprovalStatus.pending
           : ApprovalStatus.approved;
 
+      String uid = const Uuid().v4();
+
+      // Attempt Firebase Auth sign-up
+      try {
+        final cred = await _firebaseAuth?.createUserWithEmailAndPassword(
+          email: email.trim(),
+          password: password.trim(),
+        );
+        if (cred?.user != null) {
+          uid = cred!.user!.uid;
+          await cred.user!.updateDisplayName(displayName.trim());
+        }
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          throw const ValidationFailure('An account with this email already exists.');
+        } else if (e.code == 'weak-password') {
+          throw const ValidationFailure('Password is too weak. Please use at least 6 characters.');
+        }
+        debugPrint('Firebase createUser warning: ${e.message}');
+      } catch (e) {
+        debugPrint('Firebase Auth sign up error: $e');
+      }
+
       final newUser = UserModel(
-        id: const Uuid().v4(),
+        id: uid,
         displayName: displayName.trim(),
         email: email.trim(),
         role: role,
@@ -90,8 +161,14 @@ class AuthRepositoryImpl implements IAuthRepository {
         bio: role == UserRole.writer ? 'New writer applicant.' : null,
       );
 
+      // Save in Firestore
+      await _firestore.saveUser(newUser);
+
+      // Save in memory
       _dataSource.updateUser(newUser);
       _dataSource.setCurrentUser(newUser);
+
+      NotificationService().syncUserDeviceToken(newUser.id);
       return newUser;
     } catch (e) {
       if (e is AppFailure) rethrow;
@@ -101,6 +178,11 @@ class AuthRepositoryImpl implements IAuthRepository {
 
   @override
   Future<void> signOut() async {
+    try {
+      await _firebaseAuth?.signOut();
+    } catch (e) {
+      debugPrint('Firebase signOut error: $e');
+    }
     _dataSource.setCurrentUser(null);
   }
 
@@ -108,7 +190,6 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<UserEntity> switchRole(UserRole newRole) async {
     final current = _dataSource.currentUser;
     if (current == null) {
-      // Find default user for this role or create one
       final allUsers = _dataSource.getAllUsers();
       final target = allUsers.firstWhere((u) => u.role == newRole);
       _dataSource.setCurrentUser(target);
@@ -117,6 +198,7 @@ class AuthRepositoryImpl implements IAuthRepository {
 
     final updated = current.copyWith(role: newRole, updatedAt: DateTime.now()) as UserModel;
     _dataSource.updateUser(updated);
+    await _firestore.saveUser(updated);
     return updated;
   }
 
@@ -133,6 +215,7 @@ class AuthRepositoryImpl implements IAuthRepository {
     ) as UserModel;
 
     _dataSource.updateUser(updated);
+    await _firestore.saveUser(updated);
     return updated;
   }
 }

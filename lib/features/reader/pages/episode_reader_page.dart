@@ -8,6 +8,10 @@ import '../../../core/responsive/breakpoints.dart';
 import '../controllers/episode_reader_controller.dart';
 import '../states/episode_reader_state.dart';
 import '../widgets/reader_settings_sheet.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../../domain/entities/content_block_entity.dart';
+import '../../../core/services/ad_service.dart';
 
 class EpisodeReaderPage extends StatelessWidget {
   const EpisodeReaderPage({super.key});
@@ -96,22 +100,8 @@ class EpisodeReaderPage extends StatelessWidget {
                                 color: theme.textColor.withValues(alpha: 0.15)),
                             const SizedBox(height: AppSpacing.xl),
 
-                            // Main Story Content
-                            Text(
-                              currentEpisode.content,
-                              style: ctrl.fontFamily.value ==
-                                      ReaderFontFamily.serif
-                                  ? GoogleFonts.merriweather(
-                                      fontSize: ctrl.fontSize.value,
-                                      height: ctrl.lineHeight.value,
-                                      color: theme.textColor,
-                                    )
-                                  : GoogleFonts.plusJakartaSans(
-                                      fontSize: ctrl.fontSize.value,
-                                      height: ctrl.lineHeight.value,
-                                      color: theme.textColor,
-                                    ),
-                            ),
+                            // Main Story Content (Sequential Content Blocks)
+                            ..._buildContentBlocks(ctrl, theme, currentEpisode.effectiveBlocks),
 
                             const SizedBox(height: AppSpacing.xxxl),
                             Divider(
@@ -309,4 +299,190 @@ class EpisodeReaderPage extends StatelessWidget {
       ),
     );
   }
+
+  List<Widget> _buildContentBlocks(
+    EpisodeReaderController ctrl,
+    ReaderColorTheme theme,
+    List<ContentBlockEntity> blocks,
+  ) {
+    if (blocks.isEmpty) {
+      return [
+        Text(
+          'No content available in this chapter.',
+          style: AppTextStyles.bodyMedium.copyWith(color: theme.textColor.withValues(alpha: 0.6)),
+        ),
+      ];
+    }
+
+    final widgets = <Widget>[];
+
+    for (final block in blocks) {
+      switch (block.type) {
+        case ContentBlockType.text:
+          if (block.content.trim().isNotEmpty) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.l),
+                child: Text(
+                  block.content,
+                  style: ctrl.fontFamily.value == ReaderFontFamily.serif
+                      ? GoogleFonts.merriweather(
+                          fontSize: ctrl.fontSize.value,
+                          height: ctrl.lineHeight.value,
+                          color: theme.textColor,
+                        )
+                      : GoogleFonts.plusJakartaSans(
+                          fontSize: ctrl.fontSize.value,
+                          height: ctrl.lineHeight.value,
+                          color: theme.textColor,
+                        ),
+                ),
+              ),
+            );
+          }
+          break;
+
+        case ContentBlockType.image:
+          final imageUrl = block.url ?? '';
+          if (imageUrl.isNotEmpty) {
+            widgets.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(AppRadii.m),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 180,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: theme.textColor.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(AppRadii.m),
+                          ),
+                          alignment: Alignment.center,
+                          child: Icon(Icons.broken_image_rounded, color: theme.textColor.withValues(alpha: 0.4)),
+                        ),
+                      ),
+                    ),
+                    if (block.caption != null && block.caption!.trim().isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        block.caption!,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: theme.textColor.withValues(alpha: 0.7),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }
+          break;
+
+        case ContentBlockType.pdf:
+          final pdfUrl = block.url ?? '';
+          if (pdfUrl.isNotEmpty) {
+            widgets.add(
+              Container(
+                height: 480,
+                margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadii.m),
+                  border: Border.all(color: theme.textColor.withValues(alpha: 0.15)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadii.m),
+                  child: SfPdfViewer.network(pdfUrl),
+                ),
+              ),
+            );
+          }
+          break;
+
+        case ContentBlockType.ad:
+          widgets.add(
+            _ReaderAdWidget(theme: theme),
+          );
+          break;
+      }
+    }
+
+    return widgets;
+  }
 }
+
+class _ReaderAdWidget extends StatefulWidget {
+  final ReaderColorTheme theme;
+  const _ReaderAdWidget({required this.theme});
+
+  @override
+  State<_ReaderAdWidget> createState() => _ReaderAdWidgetState();
+}
+
+class _ReaderAdWidgetState extends State<_ReaderAdWidget> {
+  dynamic _bannerAd;
+  bool _isAdLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBanner();
+  }
+
+  void _loadBanner() {
+    _bannerAd = AdService().createBannerAd(
+      onAdLoaded: () {
+        if (mounted) setState(() => _isAdLoaded = true);
+      },
+      onAdFailedToLoad: (_) {
+        if (mounted) setState(() => _isAdLoaded = false);
+      },
+    );
+    _bannerAd?.load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isAdLoaded && _bannerAd != null) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+        alignment: Alignment.center,
+        height: _bannerAd.size.height.toDouble(),
+        width: _bannerAd.size.width.toDouble(),
+        child: AdWidget(ad: _bannerAd),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: widget.theme.textColor.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(AppRadii.s),
+        border: Border.all(color: widget.theme.textColor.withValues(alpha: 0.1)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        'ADVERTISEMENT',
+        style: AppTextStyles.labelSmall.copyWith(
+          color: widget.theme.textColor.withValues(alpha: 0.4),
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+}
+

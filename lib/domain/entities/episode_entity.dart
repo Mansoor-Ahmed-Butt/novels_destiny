@@ -1,3 +1,5 @@
+import 'content_block_entity.dart';
+
 enum EpisodeStatus {
   draft,
   scheduled,
@@ -27,6 +29,7 @@ class EpisodeEntity {
   final String titleLowercase;
   final String? summary;
   final String content;
+  final List<ContentBlockEntity> blocks;
   final int wordCount;
   final EpisodeStatus status;
   final DateTime? publishedAt;
@@ -43,6 +46,7 @@ class EpisodeEntity {
     required this.titleLowercase,
     this.summary,
     required this.content,
+    this.blocks = const [],
     required this.wordCount,
     this.status = EpisodeStatus.published,
     this.publishedAt,
@@ -53,6 +57,22 @@ class EpisodeEntity {
 
   bool get isPublished => status == EpisodeStatus.published;
 
+  List<ContentBlockEntity> get effectiveBlocks {
+    if (blocks.isNotEmpty) return blocks;
+    if (content.isNotEmpty) {
+      return [
+        ContentBlockEntity(
+          id: '${id}_block_1',
+          episodeId: id,
+          type: ContentBlockType.text,
+          order: 1,
+          content: content,
+        ),
+      ];
+    }
+    return const [];
+  }
+
   EpisodeEntity copyWith({
     String? id,
     String? novelId,
@@ -62,6 +82,7 @@ class EpisodeEntity {
     String? titleLowercase,
     String? summary,
     String? content,
+    List<ContentBlockEntity>? blocks,
     int? wordCount,
     EpisodeStatus? status,
     DateTime? publishedAt,
@@ -78,6 +99,7 @@ class EpisodeEntity {
       titleLowercase: titleLowercase ?? this.titleLowercase,
       summary: summary ?? this.summary,
       content: content ?? this.content,
+      blocks: blocks ?? this.blocks,
       wordCount: wordCount ?? this.wordCount,
       status: status ?? this.status,
       publishedAt: publishedAt ?? this.publishedAt,
