@@ -51,7 +51,8 @@ class _AppTextFieldState extends State<AppTextField> {
   @override
   void didUpdateWidget(covariant AppTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.obscureText != widget.obscureText || oldWidget.isPassword != widget.isPassword) {
+    if (oldWidget.obscureText != widget.obscureText ||
+        oldWidget.isPassword != widget.isPassword) {
       if (!widget.isPassword) {
         _obscureText = widget.obscureText;
       }
@@ -64,7 +65,9 @@ class _AppTextFieldState extends State<AppTextField> {
     if (widget.isPassword) {
       effectiveSuffixIcon = IconButton(
         icon: Icon(
-          _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          _obscureText
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
           size: 20,
           color: _obscureText ? AppColors.textTertiary : AppColors.primary,
         ),
@@ -97,14 +100,18 @@ class _AppTextFieldState extends State<AppTextField> {
           onChanged: widget.onChanged,
           onSubmitted: widget.onSubmitted,
           obscureText: _obscureText,
-          keyboardType: widget.isPassword ? TextInputType.visiblePassword : widget.keyboardType,
+          keyboardType: widget.isPassword
+              ? TextInputType.visiblePassword
+              : widget.keyboardType,
           maxLines: _obscureText ? 1 : widget.maxLines,
           minLines: widget.minLines,
           enabled: widget.enabled,
           style: AppTextStyles.bodyLarge,
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
+            hintStyle: AppTextStyles.bodyMedium.copyWith(
+              color: AppColors.textTertiary,
+            ),
             errorText: widget.errorText,
             filled: true,
             fillColor: AppColors.surface,
@@ -124,7 +131,10 @@ class _AppTextFieldState extends State<AppTextField> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadii.m),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadii.m),
@@ -165,11 +175,21 @@ class AppSearchField extends StatelessWidget {
         style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
-          prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+          hintStyle: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textTertiary,
+          ),
+          prefixIcon: const Icon(
+            Icons.search_rounded,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
           suffixIcon: controller != null && controller!.text.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.textSecondary),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 18,
+                    color: AppColors.textSecondary,
+                  ),
                   onPressed: () {
                     controller!.clear();
                     onClear?.call();
@@ -177,7 +197,10 @@ class AppSearchField extends StatelessWidget {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.sm),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.l,
+            vertical: AppSpacing.sm,
+          ),
         ),
       ),
     );

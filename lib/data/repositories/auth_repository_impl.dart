@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -91,25 +92,98 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<UserEntity> signInWithGoogle() async {
     try {
-      final googleUser = UserModel(
-        id: 'google_reader_${DateTime.now().millisecondsSinceEpoch}',
-        displayName: 'Google Reader',
-        email: 'reader.google@destiny.com',
-        photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-        role: UserRole.reader,
-        approvalStatus: ApprovalStatus.approved,
-        isActive: true,
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        bio: 'Joined via Google Sign-In.',
+      // 1. Initialize and trigger Google Sign-In flow
+      final GoogleSignIn googleSignIn = GoogleSignIn.instance;
+      try {
+        await googleSignIn.initialize();
+      } catch (_) {} // Might already be initialized
+
+      GoogleSignInAccount googleAccount;
+      try {
+        googleAccount = await googleSignIn.authenticate();
+      } catch (e) {
+        if (e.toString().contains('canceled') || e.toString().contains('interrupted')) {
+          throw const UnknownFailure('Google sign-in was cancelled.');
+        }
+        rethrow;
+      }
+
+      // 2. Get auth credentials from Google
+      final GoogleSignInAuthentication googleAuth = googleAccount.authentication;
+      final authorization = await googleAccount.authorizationClient.authorizationForScopes([]);
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: authorization?.accessToken,
+        idToken: googleAuth.idToken,
       );
 
-      await _firestore.saveUser(googleUser);
+      // 3. Sign in to Firebase with Google credential
+      UserCredential? firebaseCredential;
+      try {
+        firebaseCredential = await _firebaseAuth?.signInWithCredential(credential);
+      } catch (e) {
+        debugPrint('Firebase Auth Google signIn failed: $e');
+      }
+
+      // 4. Build UserModel from Firebase user or Google account info
+      final String uid = firebaseCredential?.user?.uid ?? 'google_${googleAccount.id}';
+      final String displayName = firebaseCredential?.user?.displayName
+          ?? googleAccount.displayName
+          ?? googleAccount.email.split('@').first;
+      final String email = firebaseCredential?.user?.email ?? googleAccount.email;
+      final String? photoUrl = firebaseCredential?.user?.photoURL ?? googleAccount.photoUrl;
+
+      // 5. Check if user already exists in Firestore
+      UserModel? existingUser;
+      try {
+        existingUser = await _firestore.getUser(uid).timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => null,
+        );
+      } catch (e) {
+        debugPrint('Firestore getUser warning during Google sign-in: $e');
+      }
+
+      final UserModel googleUser;
+      if (existingUser != null) {
+        googleUser = existingUser;
+      } else {
+        googleUser = UserModel(
+          id: uid,
+          displayName: displayName,
+          email: email,
+          photoUrl: photoUrl,
+          role: UserRole.reader,
+          approvalStatus: ApprovalStatus.approved,
+          isActive: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          bio: 'Joined via Google Sign-In.',
+        );
+
+        // 6. Save to Firestore with a timeout so we never hang
+        try {
+          await _firestore.saveUser(googleUser).timeout(
+            const Duration(seconds: 5),
+            onTimeout: () {
+              debugPrint('Firestore saveUser timed out during Google sign-in, continuing anyway.');
+            },
+          );
+        } catch (e) {
+          debugPrint('Firestore saveUser warning during Google sign-in: $e');
+        }
+      }
+
+      // 7. Update local state and proceed
       _dataSource.updateUser(googleUser);
       _dataSource.setCurrentUser(googleUser);
-      NotificationService().syncUserDeviceToken(googleUser.id);
+
+      try {
+        NotificationService().syncUserDeviceToken(googleUser.id);
+      } catch (_) {}
+
       return googleUser;
     } catch (e) {
+      if (e is AppFailure) rethrow;
       throw UnknownFailure('Failed to sign in with Google: $e');
     }
   }

@@ -22,8 +22,12 @@ class _AuthPageState extends State<AuthPage> {
   bool isAdminMode = false;
 
   final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController(text: 'aria.reader@destiny.com');
-  final TextEditingController passwordController = TextEditingController(text: 'secret123');
+  final TextEditingController emailController = TextEditingController(
+    text: 'aria.reader@destiny.com',
+  );
+  final TextEditingController passwordController = TextEditingController(
+    text: 'secret123',
+  );
   UserRole selectedRole = UserRole.reader;
 
   @override
@@ -55,7 +59,9 @@ class _AuthPageState extends State<AuthPage> {
                     boxShadow: AppShadows.card,
                   ),
                   child: Icon(
-                    isAdminMode ? Icons.admin_panel_settings : Icons.auto_stories,
+                    isAdminMode
+                        ? Icons.admin_panel_settings
+                        : Icons.auto_stories,
                     color: AppColors.textInverse,
                     size: 28,
                   ),
@@ -63,15 +69,17 @@ class _AuthPageState extends State<AuthPage> {
                 const SizedBox(height: AppSpacing.l),
                 Text(
                   isAdminMode ? 'Admin Portal' : 'Novels Destiny',
-                  style: AppTextStyles.displayMedium.copyWith(letterSpacing: -0.5),
+                  style: AppTextStyles.displayMedium.copyWith(
+                    letterSpacing: -0.5,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   isSignUp
                       ? 'Join our community of storytellers'
                       : isAdminMode
-                          ? 'Sign in to access platform administration & moderation'
-                          : 'Sign in to access your library & studio',
+                      ? 'Sign in to access platform administration & moderation'
+                      : 'Sign in to access your library & studio',
                   style: AppTextStyles.bodyMedium,
                   textAlign: TextAlign.center,
                 ),
@@ -83,7 +91,9 @@ class _AuthPageState extends State<AuthPage> {
                   child: Obx(() {
                     final state = controller.state.value;
                     final isLoading = state is AuthLoading;
-                    final errorMessage = state is AuthFailureState ? state.message : null;
+                    final errorMessage = state is AuthFailureState
+                        ? state.message
+                        : null;
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -94,16 +104,24 @@ class _AuthPageState extends State<AuthPage> {
                             decoration: BoxDecoration(
                               color: AppColors.errorLight,
                               borderRadius: BorderRadius.circular(AppRadii.m),
-                              border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                              border: Border.all(
+                                color: AppColors.error.withValues(alpha: 0.3),
+                              ),
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.error_outline, size: 18, color: AppColors.error),
+                                const Icon(
+                                  Icons.error_outline,
+                                  size: 18,
+                                  color: AppColors.error,
+                                ),
                                 const SizedBox(width: AppSpacing.s),
                                 Expanded(
                                   child: Text(
                                     errorMessage,
-                                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.error),
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.error,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -115,7 +133,10 @@ class _AuthPageState extends State<AuthPage> {
                         // Admin Portal Access Switch (Only on Sign In)
                         if (!isSignUp) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 10),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.m,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: isAdminMode
                                   ? AppColors.accent.withValues(alpha: 0.08)
@@ -130,21 +151,29 @@ class _AuthPageState extends State<AuthPage> {
                             child: Row(
                               children: [
                                 Icon(
-                                  isAdminMode ? Icons.admin_panel_settings : Icons.shield_outlined,
+                                  isAdminMode
+                                      ? Icons.admin_panel_settings
+                                      : Icons.shield_outlined,
                                   size: 22,
-                                  color: isAdminMode ? AppColors.accent : AppColors.textTertiary,
+                                  color: isAdminMode
+                                      ? AppColors.accent
+                                      : AppColors.textTertiary,
                                 ),
                                 const SizedBox(width: AppSpacing.m),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Admin Mode Access',
-                                        style: AppTextStyles.labelMedium.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: isAdminMode ? AppColors.accent : AppColors.textPrimary,
-                                        ),
+                                        style: AppTextStyles.labelMedium
+                                            .copyWith(
+                                              fontWeight: FontWeight.w700,
+                                              color: isAdminMode
+                                                  ? AppColors.accent
+                                                  : AppColors.textPrimary,
+                                            ),
                                       ),
                                       Text(
                                         isAdminMode
@@ -160,15 +189,17 @@ class _AuthPageState extends State<AuthPage> {
                                 ),
                                 Switch.adaptive(
                                   value: isAdminMode,
-                                  activeColor: AppColors.accent,
+                                  activeTrackColor: AppColors.accent,
                                   onChanged: (val) {
                                     setState(() {
                                       isAdminMode = val;
                                       if (isAdminMode) {
-                                        emailController.text = 'admin@novelsdestiny.com';
+                                        emailController.text =
+                                            'admin@novelsdestiny.com';
                                         passwordController.text = 'secret123';
                                       } else {
-                                        emailController.text = 'aria.reader@destiny.com';
+                                        emailController.text =
+                                            'aria.reader@destiny.com';
                                         passwordController.text = 'secret123';
                                       }
                                     });
@@ -185,7 +216,10 @@ class _AuthPageState extends State<AuthPage> {
                             label: 'Full Name',
                             hint: 'Pen name or author name',
                             controller: nameController,
-                            prefixIcon: const Icon(Icons.person_outline, size: 20),
+                            prefixIcon: const Icon(
+                              Icons.person_outline,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(height: AppSpacing.m),
                           // Role selector
@@ -202,16 +236,22 @@ class _AuthPageState extends State<AuthPage> {
                                   Expanded(
                                     child: _RoleChip(
                                       title: 'Reader',
-                                      isSelected: selectedRole == UserRole.reader,
-                                      onTap: () => setState(() => selectedRole = UserRole.reader),
+                                      isSelected:
+                                          selectedRole == UserRole.reader,
+                                      onTap: () => setState(
+                                        () => selectedRole = UserRole.reader,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.s),
                                   Expanded(
                                     child: _RoleChip(
                                       title: 'Writer',
-                                      isSelected: selectedRole == UserRole.writer,
-                                      onTap: () => setState(() => selectedRole = UserRole.writer),
+                                      isSelected:
+                                          selectedRole == UserRole.writer,
+                                      onTap: () => setState(
+                                        () => selectedRole = UserRole.writer,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -249,8 +289,12 @@ class _AuthPageState extends State<AuthPage> {
                         const SizedBox(height: AppSpacing.xl),
                         AppPrimaryButton(
                           label: isSignUp
-                              ? (selectedRole == UserRole.writer ? 'Submit Writer Application' : 'Create Reader Account')
-                              : (isAdminMode ? 'Sign In to Admin Portal' : 'Sign In'),
+                              ? (selectedRole == UserRole.writer
+                                    ? 'Submit Writer Application'
+                                    : 'Create Reader Account')
+                              : (isAdminMode
+                                    ? 'Sign In to Admin Portal'
+                                    : 'Sign In'),
                           isLoading: isLoading,
                           onPressed: () {
                             if (isSignUp) {
@@ -258,7 +302,9 @@ class _AuthPageState extends State<AuthPage> {
                                 emailController.text.trim(),
                                 passwordController.text.trim(),
                                 nameController.text.isEmpty
-                                    ? (selectedRole == UserRole.writer ? 'New Writer' : 'Reader')
+                                    ? (selectedRole == UserRole.writer
+                                          ? 'New Writer'
+                                          : 'Reader')
                                     : nameController.text.trim(),
                                 selectedRole,
                               );
@@ -274,49 +320,73 @@ class _AuthPageState extends State<AuthPage> {
 
                         // Google Sign In (Reader Default)
                         if (!isSignUp && !isAdminMode) ...[
-                          OutlinedButton(
-                            onPressed: isLoading ? null : () => controller.signInWithGoogle(),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 13),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppRadii.m),
+                          Obx(() {
+                            final googleLoading =
+                                controller.isGoogleLoading.value;
+                            return OutlinedButton(
+                              onPressed: (isLoading || googleLoading)
+                                  ? null
+                                  : () => controller.signInWithGoogle(),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 13,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadii.m,
+                                  ),
+                                ),
+                                side: const BorderSide(
+                                  color: AppColors.cardBorder,
+                                  width: 1.2,
+                                ),
+                                backgroundColor: AppColors.surface,
                               ),
-                              side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
-                              backgroundColor: AppColors.surface,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
-                                  child: const Center(
-                                    child: Text(
-                                      'G',
-                                      style: TextStyle(
-                                        color: Color(0xFF4285F4),
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 14,
-                                        fontFamily: 'sans-serif',
+                              child: googleLoading
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.textSecondary,
                                       ),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Container(
+                                          width: 20,
+                                          height: 20,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Colors.white,
+                                          ),
+                                          child: const Center(
+                                            child: Text(
+                                              'G',
+                                              style: TextStyle(
+                                                color: Color(0xFF4285F4),
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 14,
+                                                fontFamily: 'sans-serif',
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.s),
+                                        Text(
+                                          'Sign in with Google',
+                                          style: AppTextStyles.labelMedium
+                                              .copyWith(
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.s),
-                                Text(
-                                  'Sign in with Google',
-                                  style: AppTextStyles.labelMedium.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                            );
+                          }),
                           const SizedBox(height: AppSpacing.m),
                         ],
 
@@ -329,7 +399,8 @@ class _AuthPageState extends State<AuthPage> {
                                 emailController.text = '';
                                 passwordController.text = '';
                               } else {
-                                emailController.text = 'aria.reader@destiny.com';
+                                emailController.text =
+                                    'aria.reader@destiny.com';
                                 passwordController.text = 'secret123';
                               }
                             });
@@ -338,7 +409,9 @@ class _AuthPageState extends State<AuthPage> {
                             isSignUp
                                 ? 'Already have an account? Sign In'
                                 : 'Don\'t have an account? Create one',
-                            style: AppTextStyles.labelMedium.copyWith(color: AppColors.textPrimary),
+                            style: AppTextStyles.labelMedium.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
                       ],
@@ -350,7 +423,9 @@ class _AuthPageState extends State<AuthPage> {
                 // Quick Demo Logins
                 Text(
                   'Quick Demo One-Click Access',
-                  style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
+                  style: AppTextStyles.labelSmall.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.s),
                 Wrap(
@@ -365,7 +440,10 @@ class _AuthPageState extends State<AuthPage> {
                         setState(() => isAdminMode = false);
                         emailController.text = 'aria.reader@destiny.com';
                         passwordController.text = 'secret123';
-                        controller.signIn('aria.reader@destiny.com', 'secret123');
+                        controller.signIn(
+                          'aria.reader@destiny.com',
+                          'secret123',
+                        );
                       },
                     ),
                     AppPillBadge(
@@ -375,7 +453,10 @@ class _AuthPageState extends State<AuthPage> {
                         setState(() => isAdminMode = false);
                         emailController.text = 'julian.author@destiny.com';
                         passwordController.text = 'secret123';
-                        controller.signIn('julian.author@destiny.com', 'secret123');
+                        controller.signIn(
+                          'julian.author@destiny.com',
+                          'secret123',
+                        );
                       },
                     ),
                     AppPillBadge(
@@ -385,7 +466,10 @@ class _AuthPageState extends State<AuthPage> {
                         setState(() => isAdminMode = false);
                         emailController.text = 'kaelen.writer@destiny.com';
                         passwordController.text = 'secret123';
-                        controller.signIn('kaelen.writer@destiny.com', 'secret123');
+                        controller.signIn(
+                          'kaelen.writer@destiny.com',
+                          'secret123',
+                        );
                       },
                     ),
                     AppPillBadge(
@@ -395,7 +479,10 @@ class _AuthPageState extends State<AuthPage> {
                         setState(() => isAdminMode = true);
                         emailController.text = 'admin@novelsdestiny.com';
                         passwordController.text = 'secret123';
-                        controller.signIn('admin@novelsdestiny.com', 'secret123');
+                        controller.signIn(
+                          'admin@novelsdestiny.com',
+                          'secret123',
+                        );
                       },
                     ),
                   ],

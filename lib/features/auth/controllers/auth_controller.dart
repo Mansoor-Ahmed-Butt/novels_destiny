@@ -17,6 +17,7 @@ class AuthController extends GetxController {
 
   final Rx<AuthState> state = Rx<AuthState>(const AuthInitial());
   final Rx<UserEntity?> currentUser = Rx<UserEntity?>(null);
+  final RxBool isGoogleLoading = false.obs;
   StreamSubscription<UserEntity?>? _authSubscription;
 
   @override
@@ -57,14 +58,16 @@ class AuthController extends GetxController {
       state.value = AuthFailureState(e.message);
       _logger.warning('Sign-in failure: ${e.message}');
     } catch (e) {
-      state.value = const AuthFailureState('Failed to sign in. Please try again.');
+      state.value = const AuthFailureState(
+        'Failed to sign in. Please try again.',
+      );
       _logger.error('Unexpected sign in error', e);
     }
   }
 
   Future<void> signInWithGoogle() async {
     try {
-      state.value = const AuthLoading();
+      isGoogleLoading.value = true;
       final user = await _authUseCases.signInWithGoogle();
       currentUser.value = user;
       state.value = Authenticated(user);
@@ -72,17 +75,34 @@ class AuthController extends GetxController {
 
       _routeUserAfterAuth(user);
     } on AppFailure catch (e) {
-      state.value = AuthFailureState(e.message);
+      // If user cancelled, just reset to unauthenticated without error
+      if (e.message.contains('cancelled')) {
+        state.value = const Unauthenticated();
+      } else {
+        state.value = AuthFailureState(e.message);
+      }
     } catch (e) {
       state.value = const AuthFailureState('Failed to sign in with Google.');
       _logger.error('Unexpected Google sign in error', e);
+    } finally {
+      isGoogleLoading.value = false;
     }
   }
 
-  Future<void> signUp(String email, String password, String displayName, UserRole role) async {
+  Future<void> signUp(
+    String email,
+    String password,
+    String displayName,
+    UserRole role,
+  ) async {
     try {
       state.value = const AuthLoading();
-      final user = await _authUseCases.signUp(email, password, displayName, role);
+      final user = await _authUseCases.signUp(
+        email,
+        password,
+        displayName,
+        role,
+      );
       currentUser.value = user;
       state.value = Authenticated(user);
       _logger.info('User signed up: ${user.email} as ${user.role.name}');
@@ -97,7 +117,8 @@ class AuthController extends GetxController {
   }
 
   void _routeUserAfterAuth(UserEntity user) {
-    if (user.role == UserRole.writer && user.approvalStatus == ApprovalStatus.pending) {
+    if (user.role == UserRole.writer &&
+        user.approvalStatus == ApprovalStatus.pending) {
       Get.offAllNamed(AppRoutes.writerPendingApproval);
     } else {
       if (Get.isRegistered<MainShellController>()) {
@@ -184,9 +205,17 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> updateProfile({String? displayName, String? bio, String? photoUrl}) async {
+  Future<void> updateProfile({
+    String? displayName,
+    String? bio,
+    String? photoUrl,
+  }) async {
     try {
-      final updated = await _authUseCases.updateProfile(displayName: displayName, bio: bio, photoUrl: photoUrl);
+      final updated = await _authUseCases.updateProfile(
+        displayName: displayName,
+        bio: bio,
+        photoUrl: photoUrl,
+      );
       currentUser.value = updated;
       state.value = Authenticated(updated);
     } catch (e) {
