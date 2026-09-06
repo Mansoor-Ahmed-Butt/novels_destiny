@@ -9,37 +9,12 @@ import '../../../domain/entities/user_entity.dart';
 import '../controllers/auth_controller.dart';
 import '../states/auth_state.dart';
 
-class AuthPage extends StatefulWidget {
+class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
 
   @override
-  State<AuthPage> createState() => _AuthPageState();
-}
-
-class _AuthPageState extends State<AuthPage> {
-  final AuthController controller = Get.find<AuthController>();
-  bool isSignUp = false;
-  bool isAdminMode = false;
-
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController(
-    text: 'aria.reader@destiny.com',
-  );
-  final TextEditingController passwordController = TextEditingController(
-    text: 'secret123',
-  );
-  UserRole selectedRole = UserRole.reader;
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final controller = Get.find<AuthController>();
     return AppScaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -50,39 +25,39 @@ class _AuthPageState extends State<AuthPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Brand Header
-                Container(
+                Obx(() => Container(
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: isAdminMode ? AppColors.accent : AppColors.primary,
+                    color: controller.isAdminMode.value ? AppColors.accent : AppColors.primary,
                     borderRadius: BorderRadius.circular(AppRadii.card),
                     boxShadow: AppShadows.card,
                   ),
                   child: Icon(
-                    isAdminMode
+                    controller.isAdminMode.value
                         ? Icons.admin_panel_settings
                         : Icons.auto_stories,
                     color: AppColors.textInverse,
                     size: 28,
                   ),
-                ),
+                )),
                 const SizedBox(height: AppSpacing.l),
-                Text(
-                  isAdminMode ? 'Admin Portal' : 'Novels Destiny',
+                Obx(() => Text(
+                  controller.isAdminMode.value ? 'Admin Portal' : 'Novels Destiny',
                   style: AppTextStyles.displayMedium.copyWith(
                     letterSpacing: -0.5,
                   ),
-                ),
+                )),
                 const SizedBox(height: 4),
-                Text(
-                  isSignUp
+                Obx(() => Text(
+                  controller.isSignUp.value
                       ? 'Join our community of storytellers'
-                      : isAdminMode
+                      : controller.isAdminMode.value
                       ? 'Sign in to access platform administration & moderation'
                       : 'Sign in to access your library & studio',
                   style: AppTextStyles.bodyMedium,
                   textAlign: TextAlign.center,
-                ),
+                )),
                 const SizedBox(height: AppSpacing.xl),
 
                 // Form Card
@@ -90,6 +65,9 @@ class _AuthPageState extends State<AuthPage> {
                   padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Obx(() {
                     final state = controller.state.value;
+                    final isSignUp = controller.isSignUp.value;
+                    final isAdminMode = controller.isAdminMode.value;
+                    final selectedRole = controller.selectedRole.value;
                     final isLoading = state is AuthLoading;
                     final errorMessage = state is AuthFailureState
                         ? state.message
@@ -177,7 +155,7 @@ class _AuthPageState extends State<AuthPage> {
                                       ),
                                       Text(
                                         isAdminMode
-                                            ? 'Administrator credentials enabled'
+                                            ? 'Enter administrator credentials'
                                             : 'Turn ON if logging in as an Admin',
                                         style: AppTextStyles.bodySmall.copyWith(
                                           fontSize: 11,
@@ -190,20 +168,7 @@ class _AuthPageState extends State<AuthPage> {
                                 Switch.adaptive(
                                   value: isAdminMode,
                                   activeTrackColor: AppColors.accent,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      isAdminMode = val;
-                                      if (isAdminMode) {
-                                        emailController.text =
-                                            'admin@novelsdestiny.com';
-                                        passwordController.text = 'secret123';
-                                      } else {
-                                        emailController.text =
-                                            'aria.reader@destiny.com';
-                                        passwordController.text = 'secret123';
-                                      }
-                                    });
-                                  },
+                                  onChanged: (val) => controller.toggleAdminMode(val),
                                 ),
                               ],
                             ),
@@ -215,7 +180,7 @@ class _AuthPageState extends State<AuthPage> {
                           AppTextField(
                             label: 'Full Name',
                             hint: 'Pen name or author name',
-                            controller: nameController,
+                            controller: controller.nameController,
                             prefixIcon: const Icon(
                               Icons.person_outline,
                               size: 20,
@@ -238,9 +203,7 @@ class _AuthPageState extends State<AuthPage> {
                                       title: 'Reader',
                                       isSelected:
                                           selectedRole == UserRole.reader,
-                                      onTap: () => setState(
-                                        () => selectedRole = UserRole.reader,
-                                      ),
+                                      onTap: () => controller.setSelectedRole(UserRole.reader),
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.s),
@@ -249,9 +212,7 @@ class _AuthPageState extends State<AuthPage> {
                                       title: 'Writer',
                                       isSelected:
                                           selectedRole == UserRole.writer,
-                                      onTap: () => setState(
-                                        () => selectedRole = UserRole.writer,
-                                      ),
+                                      onTap: () => controller.setSelectedRole(UserRole.writer),
                                     ),
                                   ),
                                 ],
@@ -274,7 +235,7 @@ class _AuthPageState extends State<AuthPage> {
                         AppTextField(
                           label: 'Email',
                           hint: 'your.email@example.com',
-                          controller: emailController,
+                          controller: controller.emailController,
                           keyboardType: TextInputType.emailAddress,
                           prefixIcon: const Icon(Icons.mail_outline, size: 20),
                         ),
@@ -282,7 +243,7 @@ class _AuthPageState extends State<AuthPage> {
                         AppTextField(
                           label: 'Password',
                           hint: '••••••••',
-                          controller: passwordController,
+                          controller: controller.passwordController,
                           isPassword: true,
                           prefixIcon: const Icon(Icons.lock_outline, size: 20),
                         ),
@@ -299,27 +260,27 @@ class _AuthPageState extends State<AuthPage> {
                           onPressed: () {
                             if (isSignUp) {
                               controller.signUp(
-                                emailController.text.trim(),
-                                passwordController.text.trim(),
-                                nameController.text.isEmpty
+                                controller.emailController.text.trim(),
+                                controller.passwordController.text.trim(),
+                                controller.nameController.text.isEmpty
                                     ? (selectedRole == UserRole.writer
                                           ? 'New Writer'
                                           : 'Reader')
-                                    : nameController.text.trim(),
+                                    : controller.nameController.text.trim(),
                                 selectedRole,
                               );
                             } else {
                               controller.signIn(
-                                emailController.text.trim(),
-                                passwordController.text.trim(),
+                                controller.emailController.text.trim(),
+                                controller.passwordController.text.trim(),
                               );
                             }
                           },
                         ),
                         const SizedBox(height: AppSpacing.m),
 
-                        // Google Sign In (Reader Default)
-                        if (!isSignUp && !isAdminMode) ...[
+                        // Google Sign In (Reader)
+                        if (!isAdminMode) ...[
                           Obx(() {
                             final googleLoading =
                                 controller.isGoogleLoading.value;
@@ -391,20 +352,7 @@ class _AuthPageState extends State<AuthPage> {
                         ],
 
                         TextButton(
-                          onPressed: () {
-                            setState(() {
-                              isSignUp = !isSignUp;
-                              if (isSignUp) {
-                                isAdminMode = false;
-                                emailController.text = '';
-                                passwordController.text = '';
-                              } else {
-                                emailController.text =
-                                    'aria.reader@destiny.com';
-                                passwordController.text = 'secret123';
-                              }
-                            });
-                          },
+                          onPressed: () => controller.toggleSignUpMode(),
                           child: Text(
                             isSignUp
                                 ? 'Already have an account? Sign In'
@@ -417,75 +365,6 @@ class _AuthPageState extends State<AuthPage> {
                       ],
                     );
                   }),
-                ),
-
-                const SizedBox(height: AppSpacing.xl),
-                // Quick Demo Logins
-                Text(
-                  'Quick Demo One-Click Access',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.s),
-                Wrap(
-                  spacing: AppSpacing.s,
-                  runSpacing: AppSpacing.s,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    AppPillBadge(
-                      label: 'Reader (Aria)',
-                      icon: Icons.auto_stories,
-                      onTap: () {
-                        setState(() => isAdminMode = false);
-                        emailController.text = 'aria.reader@destiny.com';
-                        passwordController.text = 'secret123';
-                        controller.signIn(
-                          'aria.reader@destiny.com',
-                          'secret123',
-                        );
-                      },
-                    ),
-                    AppPillBadge(
-                      label: 'Writer (Julian)',
-                      icon: Icons.edit_note,
-                      onTap: () {
-                        setState(() => isAdminMode = false);
-                        emailController.text = 'julian.author@destiny.com';
-                        passwordController.text = 'secret123';
-                        controller.signIn(
-                          'julian.author@destiny.com',
-                          'secret123',
-                        );
-                      },
-                    ),
-                    AppPillBadge(
-                      label: 'Pending Writer (Kaelen)',
-                      icon: Icons.hourglass_top_rounded,
-                      onTap: () {
-                        setState(() => isAdminMode = false);
-                        emailController.text = 'kaelen.writer@destiny.com';
-                        passwordController.text = 'secret123';
-                        controller.signIn(
-                          'kaelen.writer@destiny.com',
-                          'secret123',
-                        );
-                      },
-                    ),
-                    AppPillBadge(
-                      label: 'Admin (Elena)',
-                      icon: Icons.admin_panel_settings,
-                      onTap: () {
-                        setState(() => isAdminMode = true);
-                        emailController.text = 'admin@novelsdestiny.com';
-                        passwordController.text = 'secret123';
-                        controller.signIn(
-                          'admin@novelsdestiny.com',
-                          'secret123',
-                        );
-                      },
-                    ),
-                  ],
                 ),
               ],
             ),

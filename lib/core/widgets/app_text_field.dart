@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../app/theme/app_theme.dart';
 
-class AppTextField extends StatefulWidget {
+class AppTextField extends StatelessWidget {
   final String? label;
   final String? hint;
   final TextEditingController? controller;
@@ -36,48 +37,46 @@ class AppTextField extends StatefulWidget {
   });
 
   @override
-  State<AppTextField> createState() => _AppTextFieldState();
-}
-
-class _AppTextFieldState extends State<AppTextField> {
-  late bool _obscureText;
-
-  @override
-  void initState() {
-    super.initState();
-    _obscureText = widget.isPassword || widget.obscureText;
-  }
-
-  @override
-  void didUpdateWidget(covariant AppTextField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.obscureText != widget.obscureText ||
-        oldWidget.isPassword != widget.isPassword) {
-      if (!widget.isPassword) {
-        _obscureText = widget.obscureText;
-      }
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    Widget? effectiveSuffixIcon = widget.suffixIcon;
-    if (widget.isPassword) {
+    // For non-password fields, return simple TextField without reactive state
+    if (!isPassword) {
+      return _buildTextField(
+        obscureText: obscureText,
+        onToggleVisibility: null,
+      );
+    }
+
+    // For password fields, use ValueBuilder for reactive password visibility toggle
+    // ValueBuilder provides localized reactive state without needing a full GetxController
+    return ValueBuilder<bool?>(
+      initialValue: true, // Password is obscured by default
+      builder: (obscureValue, updateFn) {
+        return _buildTextField(
+          obscureText: obscureValue!,
+          onToggleVisibility: () => updateFn(!obscureValue),
+        );
+      },
+      onDispose: () {}, // ValueBuilder automatically handles RxBool disposal
+    );
+  }
+
+  Widget _buildTextField({
+    required bool obscureText,
+    required VoidCallback? onToggleVisibility,
+  }) {
+    Widget? effectiveSuffixIcon = suffixIcon;
+    if (isPassword && onToggleVisibility != null) {
       effectiveSuffixIcon = IconButton(
         icon: Icon(
-          _obscureText
+          obscureText
               ? Icons.visibility_off_outlined
               : Icons.visibility_outlined,
           size: 20,
-          color: _obscureText ? AppColors.textTertiary : AppColors.primary,
+          color: obscureText ? AppColors.textTertiary : AppColors.primary,
         ),
         splashRadius: 18,
-        tooltip: _obscureText ? 'Show password' : 'Hide password',
-        onPressed: () {
-          setState(() {
-            _obscureText = !_obscureText;
-          });
-        },
+        tooltip: obscureText ? 'Show password' : 'Hide password',
+        onPressed: onToggleVisibility,
       );
     }
 
@@ -85,9 +84,9 @@ class _AppTextFieldState extends State<AppTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (widget.label != null) ...[
+        if (label != null) ...[
           Text(
-            widget.label!,
+            label!,
             style: AppTextStyles.labelLarge.copyWith(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w600,
@@ -96,30 +95,30 @@ class _AppTextFieldState extends State<AppTextField> {
           const SizedBox(height: AppSpacing.xs),
         ],
         TextField(
-          controller: widget.controller,
-          onChanged: widget.onChanged,
-          onSubmitted: widget.onSubmitted,
-          obscureText: _obscureText,
-          keyboardType: widget.isPassword
+          controller: controller,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          obscureText: obscureText,
+          keyboardType: isPassword
               ? TextInputType.visiblePassword
-              : widget.keyboardType,
-          maxLines: _obscureText ? 1 : widget.maxLines,
-          minLines: widget.minLines,
-          enabled: widget.enabled,
+              : keyboardType,
+          maxLines: obscureText ? 1 : maxLines,
+          minLines: minLines,
+          enabled: enabled,
           style: AppTextStyles.bodyLarge,
           decoration: InputDecoration(
-            hintText: widget.hint,
+            hintText: hint,
             hintStyle: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.textTertiary,
             ),
-            errorText: widget.errorText,
+            errorText: errorText,
             filled: true,
             fillColor: AppColors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.l,
               vertical: AppSpacing.m,
             ),
-            prefixIcon: widget.prefixIcon,
+            prefixIcon: prefixIcon,
             suffixIcon: effectiveSuffixIcon,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppRadii.m),

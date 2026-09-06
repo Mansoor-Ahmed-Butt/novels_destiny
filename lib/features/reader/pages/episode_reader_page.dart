@@ -11,7 +11,6 @@ import '../widgets/reader_settings_sheet.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../../domain/entities/content_block_entity.dart';
-import '../../../core/services/ad_service.dart';
 
 class EpisodeReaderPage extends StatelessWidget {
   const EpisodeReaderPage({super.key});
@@ -356,7 +355,7 @@ class EpisodeReaderPage extends StatelessWidget {
                       child: Image.network(
                         imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (context, error, stackTrace) => Container(
                           height: 180,
                           width: double.infinity,
                           decoration: BoxDecoration(
@@ -418,71 +417,54 @@ class EpisodeReaderPage extends StatelessWidget {
   }
 }
 
-class _ReaderAdWidget extends StatefulWidget {
+class _ReaderAdWidget extends StatelessWidget {
   final ReaderColorTheme theme;
   const _ReaderAdWidget({required this.theme});
 
   @override
-  State<_ReaderAdWidget> createState() => _ReaderAdWidgetState();
-}
-
-class _ReaderAdWidgetState extends State<_ReaderAdWidget> {
-  dynamic _bannerAd;
-  bool _isAdLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBanner();
-  }
-
-  void _loadBanner() {
-    _bannerAd = AdService().createBannerAd(
-      onAdLoaded: () {
-        if (mounted) setState(() => _isAdLoaded = true);
-      },
-      onAdFailedToLoad: (_) {
-        if (mounted) setState(() => _isAdLoaded = false);
-      },
-    );
-    _bannerAd?.load();
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_isAdLoaded && _bannerAd != null) {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
-        alignment: Alignment.center,
-        height: _bannerAd.size.height.toDouble(),
-        width: _bannerAd.size.width.toDouble(),
-        child: AdWidget(ad: _bannerAd),
-      );
+    final novelId = Get.parameters['novelId'] ?? '';
+    final episodeId = Get.parameters['episodeId'] ?? '';
+    final controller = Get.find<EpisodeReaderController>(
+      tag: '$novelId-$episodeId',
+    );
+
+    if (controller.bannerAd.value == null) {
+      controller.loadReaderAd();
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: widget.theme.textColor.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(AppRadii.s),
-        border: Border.all(color: widget.theme.textColor.withValues(alpha: 0.1)),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        'ADVERTISEMENT',
-        style: AppTextStyles.labelSmall.copyWith(
-          color: widget.theme.textColor.withValues(alpha: 0.4),
-          letterSpacing: 1.5,
+    return Obx(() {
+      final isLoaded = controller.isAdLoaded.value;
+      final ad = controller.bannerAd.value;
+
+      if (isLoaded && ad != null) {
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+          alignment: Alignment.center,
+          height: ad.size.height.toDouble(),
+          width: ad.size.width.toDouble(),
+          child: AdWidget(ad: ad),
+        );
+      }
+
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+        padding: const EdgeInsets.all(AppSpacing.m),
+        decoration: BoxDecoration(
+          color: theme.textColor.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(AppRadii.s),
+          border: Border.all(color: theme.textColor.withValues(alpha: 0.1)),
         ),
-      ),
-    );
+        alignment: Alignment.center,
+        child: Text(
+          'ADVERTISEMENT',
+          style: AppTextStyles.labelSmall.copyWith(
+            color: theme.textColor.withValues(alpha: 0.4),
+            letterSpacing: 1.5,
+          ),
+        ),
+      );
+    });
   }
 }
 

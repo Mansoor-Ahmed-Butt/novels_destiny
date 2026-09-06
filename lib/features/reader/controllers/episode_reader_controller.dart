@@ -9,6 +9,7 @@ import '../../../core/services/logger_service.dart';
 import '../states/episode_reader_state.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../core/services/ad_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class EpisodeReaderController extends GetxController {
   final String novelId;
@@ -34,6 +35,13 @@ class EpisodeReaderController extends GetxController {
   final Rx<ReaderFontFamily> fontFamily = ReaderFontFamily.serif.obs;
   final RxDouble lineHeight = 1.7.obs;
   final RxBool showControls = true.obs;
+
+  // Ad State Management
+  /// Tracks whether the reader banner ad has loaded successfully
+  final RxBool isAdLoaded = false.obs;
+
+  /// Holds the banner ad instance (nullable)
+  final Rx<BannerAd?> bannerAd = Rx<BannerAd?>(null);
 
   late String _currentEpisodeId;
   Timer? _progressDebounce;
@@ -178,8 +186,31 @@ class EpisodeReaderController extends GetxController {
     }
   }
 
+  /// Load banner ad for episode reader
+  ///
+  /// Creates a banner ad with callbacks that update reactive observables.
+  /// Ad is automatically disposed when controller is closed.
+  void loadReaderAd() {
+    final ad = AdService().createBannerAd(
+      onAdLoaded: () {
+        isAdLoaded.value = true;
+      },
+      onAdFailedToLoad: (error) {
+        isAdLoaded.value = false;
+        _logger.warning('Reader banner ad failed to load: $error');
+      },
+    );
+
+    bannerAd.value = ad;
+    ad?.load();
+  }
+
   @override
   void onClose() {
+    // Dispose ad if exists
+    bannerAd.value?.dispose();
+    bannerAd.value = null;
+
     _progressDebounce?.cancel();
     scrollController.dispose();
     super.onClose();

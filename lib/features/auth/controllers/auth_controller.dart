@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../app/routes/app_routes.dart';
 import '../../../data/sources/app_data_source.dart';
@@ -20,10 +21,52 @@ class AuthController extends GetxController {
   final RxBool isGoogleLoading = false.obs;
   StreamSubscription<UserEntity?>? _authSubscription;
 
+  // Form state observables for AuthPage
+  /// Tracks whether the auth form is in sign-up mode (true) or sign-in mode (false)
+  final RxBool isSignUp = false.obs;
+  
+  /// Tracks whether admin portal mode is enabled on the sign-in form
+  final RxBool isAdminMode = false.obs;
+  
+  /// Tracks the selected role for sign-up form
+  final Rx<UserRole> selectedRole = Rx<UserRole>(UserRole.reader);
+
+  // Text controllers for form input fields
+  // AuthController owns these controllers to centralize form state management
+  // and ensure proper lifecycle disposal through GetX controller lifecycle
+  late final TextEditingController nameController;
+  late final TextEditingController emailController;
+  late final TextEditingController passwordController;
+
   @override
   void onInit() {
     super.onInit();
+    // Initialize text controllers with empty values
+    nameController = TextEditingController();
+    emailController = TextEditingController();
+    passwordController = TextEditingController();
     _initAuthListener();
+  }
+
+  /// Toggles between sign-in and sign-up form mode, clearing form fields
+  void toggleSignUpMode() {
+    isSignUp.value = !isSignUp.value;
+    if (isSignUp.value) {
+      isAdminMode.value = false;
+    }
+    nameController.clear();
+    emailController.clear();
+    passwordController.clear();
+  }
+
+  /// Toggles admin portal mode without prefilling credentials
+  void toggleAdminMode(bool enabled) {
+    isAdminMode.value = enabled;
+  }
+
+  /// Updates the selected role for account creation
+  void setSelectedRole(UserRole role) {
+    selectedRole.value = role;
   }
 
   void _initAuthListener() {
@@ -225,6 +268,11 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
+    // Dispose text controllers to prevent memory leaks
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    
     _authSubscription?.cancel();
     super.onClose();
   }
