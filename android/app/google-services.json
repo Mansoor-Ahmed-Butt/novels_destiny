@@ -12,7 +12,20 @@
           "package_name": "com.example.novels_destiny"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "454348386247-ccgphviqirv796k1e50c697tvd6longd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.novels_destiny",
+            "certificate_hash": "5f3b89aeb462ff4521fc6008a0d01bc759f03ceb"
+          }
+        },
+        {
+          "client_id": "454348386247-acoi211ubonk0pooshljofr6fugh4ac7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBpb3ST28ugjwzHLpN1O-5j2NmdvkErumc"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "454348386247-acoi211ubonk0pooshljofr6fugh4ac7.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "454348386247-698u65r3qori55lvgmrqdonhnf60s5i8.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.novelsDestiny"
+              }
+            }
+          ]
         }
       }
     }

@@ -17,6 +17,8 @@ class AuthUseCases {
   Future<UserEntity> signUp(String email, String password, String displayName, UserRole role) =>
       _authRepository.signUpWithEmailPassword(email, password, displayName, role);
 
+  Future<UserEntity?> restoreSession() => _authRepository.restoreSession();
+
   Future<void> signOut() => _authRepository.signOut();
 
   Future<UserEntity> switchRole(UserRole newRole) => _authRepository.switchRole(newRole);

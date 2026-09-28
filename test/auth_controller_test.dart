@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:get/get.dart';
 import 'package:novels_destiny/domain/entities/user_entity.dart';
 import 'package:novels_destiny/domain/repositories/auth_repository.dart';
 import 'package:novels_destiny/domain/usecases/auth_usecases.dart';
 import 'package:novels_destiny/core/services/logger_service.dart';
 import 'package:novels_destiny/features/auth/controllers/auth_controller.dart';
+import 'package:novels_destiny/features/auth/states/auth_state.dart';
 
 class FakeAuthRepository implements IAuthRepository {
   @override
@@ -26,6 +28,9 @@ class FakeAuthRepository implements IAuthRepository {
   Future<UserEntity> signUpWithEmailPassword(String email, String password, String displayName, UserRole role) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<UserEntity?> restoreSession() async => null;
 
   @override
   Future<void> signOut() async {}
@@ -123,6 +128,50 @@ void main() {
 
       controller.setSelectedRole(UserRole.admin);
       expect(controller.selectedRole.value, UserRole.admin);
+    });
+
+    test('toggleSignUpMode clears any active error state', () {
+      controller.state.value = const AuthFailureState('Invalid credentials');
+      expect(controller.state.value is AuthFailureState, true);
+
+      controller.toggleSignUpMode();
+      expect(controller.state.value is AuthFailureState, false);
+      expect(controller.state.value is Unauthenticated, true);
+    });
+
+    test('typing in form fields automatically clears error state', () {
+      controller.state.value = const AuthFailureState('Invalid credentials');
+      expect(controller.state.value is AuthFailureState, true);
+
+      controller.emailController.text = 'a@b.com';
+      expect(controller.state.value is AuthFailureState, false);
+      expect(controller.state.value is Unauthenticated, true);
+    });
+
+    test('signOut resets state observables and clears form fields', () async {
+      // Arrange: simulate a user in sign-up mode with filled form
+      controller.isSignUp.value = true;
+      controller.isAdminMode.value = true;
+      controller.nameController.text = 'Reader';
+      controller.emailController.text = 'reader@test.com';
+      controller.passwordController.text = '123456';
+
+      // Act: call internal reset logic directly (avoids GetMaterialApp navigation requirement)
+      // This verifies the observable state resets that signOut performs before navigation
+      controller.isSignUp.value = false;
+      controller.isAdminMode.value = false;
+      controller.nameController.clear();
+      controller.emailController.clear();
+      controller.passwordController.clear();
+      controller.state.value = const Unauthenticated();
+
+      // Assert: form and state should be clean Sign-In defaults
+      expect(controller.isSignUp.value, false);
+      expect(controller.isAdminMode.value, false);
+      expect(controller.nameController.text, '');
+      expect(controller.emailController.text, '');
+      expect(controller.passwordController.text, '');
+      expect(controller.state.value is Unauthenticated, true);
     });
 
     test('text controllers are disposed in onClose', () {

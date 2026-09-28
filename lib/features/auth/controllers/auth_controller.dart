@@ -45,10 +45,23 @@ class AuthController extends GetxController {
     nameController = TextEditingController();
     emailController = TextEditingController();
     passwordController = TextEditingController();
+
+    // Auto-clear error when user types into any form field
+    nameController.addListener(clearError);
+    emailController.addListener(clearError);
+    passwordController.addListener(clearError);
+
     _initAuthListener();
   }
 
-  /// Toggles between sign-in and sign-up form mode, clearing form fields
+  /// Clears any currently displayed auth error
+  void clearError() {
+    if (state.value is AuthFailureState) {
+      state.value = const Unauthenticated();
+    }
+  }
+
+  /// Toggles between sign-in and sign-up form mode, clearing form fields and any active error
   void toggleSignUpMode() {
     isSignUp.value = !isSignUp.value;
     if (isSignUp.value) {
@@ -57,16 +70,20 @@ class AuthController extends GetxController {
     nameController.clear();
     emailController.clear();
     passwordController.clear();
+    // Clear error message when switching between Sign In and Create Account
+    clearError();
   }
 
   /// Toggles admin portal mode without prefilling credentials
   void toggleAdminMode(bool enabled) {
     isAdminMode.value = enabled;
+    clearError();
   }
 
   /// Updates the selected role for account creation
   void setSelectedRole(UserRole role) {
     selectedRole.value = role;
+    clearError();
   }
 
   void _initAuthListener() {
@@ -86,6 +103,25 @@ class AuthController extends GetxController {
         state.value = const Unauthenticated();
       }
     });
+
+    // Check persistent session in background
+    restoreSession();
+  }
+
+  /// Restores persistent user session across app restarts
+  Future<UserEntity?> restoreSession() async {
+    try {
+      final restored = await _authUseCases.restoreSession();
+      if (restored != null) {
+        currentUser.value = restored;
+        state.value = Authenticated(restored);
+        _logger.info('User session restored: ${restored.email} (${restored.role.name})');
+        return restored;
+      }
+    } catch (e) {
+      _logger.error('Error restoring user session', e);
+    }
+    return null;
   }
 
   Future<void> signIn(String email, String password) async {
@@ -119,7 +155,7 @@ class AuthController extends GetxController {
       _routeUserAfterAuth(user);
     } on AppFailure catch (e) {
       // If user cancelled, just reset to unauthenticated without error
-      if (e.message.contains('cancelled')) {
+      if (e.message.toLowerCase().contains('cancel')) {
         state.value = const Unauthenticated();
       } else {
         state.value = AuthFailureState(e.message);
@@ -160,6 +196,14 @@ class AuthController extends GetxController {
   }
 
   void _routeUserAfterAuth(UserEntity user) {
+    // Reset form states and error so that next time auth page is opened, it always defaults to clean Sign In
+    isSignUp.value = false;
+    isAdminMode.value = false;
+    nameController.clear();
+    emailController.clear();
+    passwordController.clear();
+    clearError();
+
     if (user.role == UserRole.writer &&
         user.approvalStatus == ApprovalStatus.pending) {
       Get.offAllNamed(AppRoutes.writerPendingApproval);
@@ -229,6 +273,12 @@ class AuthController extends GetxController {
   Future<void> signOut() async {
     await _authUseCases.signOut();
     currentUser.value = null;
+    // Always land on Sign In screen (isSignUp = false) with cleared credentials
+    isSignUp.value = false;
+    isAdminMode.value = false;
+    nameController.clear();
+    emailController.clear();
+    passwordController.clear();
     state.value = const Unauthenticated();
     Get.offAllNamed(AppRoutes.auth);
   }

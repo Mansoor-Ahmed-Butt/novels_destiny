@@ -1,19 +1,25 @@
+import 'dart:io' as io;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../sources/app_data_source.dart';
 import '../sources/firestore_data_source.dart';
 import '../models/user_model.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/errors/failures.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/session_service.dart';
 
 class AuthRepositoryImpl implements IAuthRepository {
   final AppDataSource _dataSource;
   final FirestoreDataSource _firestore = FirestoreDataSource();
+  final SessionService _sessionService = SessionService();
+  static bool _googleSignInInitialized = false;
   
   FirebaseAuth? get _firebaseAuth {
     try {
@@ -67,6 +73,7 @@ class AuthRepositoryImpl implements IAuthRepository {
         }
 
         _dataSource.setCurrentUser(userDoc);
+        await _sessionService.saveUserSession(userDoc);
         NotificationService().syncUserDeviceToken(userDoc.id);
         return userDoc;
       }
@@ -81,6 +88,7 @@ class AuthRepositoryImpl implements IAuthRepository {
         throw const PermissionFailure('This account is suspended. Please contact support.');
       }
       _dataSource.setCurrentUser(user);
+      await _sessionService.saveUserSession(user);
       NotificationService().syncUserDeviceToken(user.id);
       return user;
     } catch (e) {
@@ -92,27 +100,60 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<UserEntity> signInWithGoogle() async {
     try {
-      // 1. Initialize and trigger Google Sign-In flow
+      // 1. Initialize and trigger Google Sign-In flow with serverClientId on Android
+      final String? envClientId = dotenv.isInitialized ? dotenv.env['GOOGLE_SERVER_CLIENT_ID'] : null;
+      final String serverClientId = (envClientId != null && envClientId.isNotEmpty)
+          ? envClientId
+          : AppConstants.defaultGoogleServerClientId;
+
       final GoogleSignIn googleSignIn = GoogleSignIn.instance;
-      try {
-        await googleSignIn.initialize();
-      } catch (_) {} // Might already be initialized
+
+      if (!_googleSignInInitialized) {
+        try {
+          await googleSignIn.initialize(
+            serverClientId: (!kIsWeb && io.Platform.isAndroid && serverClientId.isNotEmpty)
+                ? serverClientId
+                : null,
+          );
+          _googleSignInInitialized = true;
+        } catch (_) {} // Might already be initialized
+      }
 
       GoogleSignInAccount googleAccount;
       try {
         googleAccount = await googleSignIn.authenticate();
       } catch (e) {
-        if (e.toString().contains('canceled') || e.toString().contains('interrupted')) {
+        final errStr = e.toString().toLowerCase();
+        if (errStr.contains('cancel') ||
+            errStr.contains('interrupted') ||
+            errStr.contains('12501') ||
+            errStr.contains('dismissed')) {
           throw const UnknownFailure('Google sign-in was cancelled.');
+        }
+        if (errStr.contains('10') ||
+            errStr.contains('developer_error') ||
+            errStr.contains('clientconfigurationerror') ||
+            errStr.contains('28444') ||
+            errStr.contains('developer console is not set up correctly')) {
+          throw const ValidationFailure(
+            'Google Sign-In configuration error: Missing SHA-1 fingerprint or incorrect Web Client ID in Firebase Console.',
+          );
         }
         rethrow;
       }
 
       // 2. Get auth credentials from Google
       final GoogleSignInAuthentication googleAuth = googleAccount.authentication;
-      final authorization = await googleAccount.authorizationClient.authorizationForScopes([]);
+      String? accessToken;
+      try {
+        final authorization = await googleAccount.authorizationClient.authorizationForScopes(['email']);
+        accessToken = authorization?.accessToken;
+      } catch (e) {
+        debugPrint('Google authorizationForScopes warning (non-fatal): $e');
+      }
+
       final OAuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: authorization?.accessToken,
+        accessToken: accessToken,
         idToken: googleAuth.idToken,
       );
 
@@ -173,9 +214,10 @@ class AuthRepositoryImpl implements IAuthRepository {
         }
       }
 
-      // 7. Update local state and proceed
+      // 7. Update local state and persist session
       _dataSource.updateUser(googleUser);
       _dataSource.setCurrentUser(googleUser);
+      await _sessionService.saveUserSession(googleUser);
 
       try {
         NotificationService().syncUserDeviceToken(googleUser.id);
@@ -238,9 +280,10 @@ class AuthRepositoryImpl implements IAuthRepository {
       // Save in Firestore
       await _firestore.saveUser(newUser);
 
-      // Save in memory
+      // Save in memory and persist session
       _dataSource.updateUser(newUser);
       _dataSource.setCurrentUser(newUser);
+      await _sessionService.saveUserSession(newUser);
 
       NotificationService().syncUserDeviceToken(newUser.id);
       return newUser;
@@ -251,12 +294,62 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
+  Future<UserEntity?> restoreSession() async {
+    try {
+      // 1. Check persistent local session
+      final savedUser = await _sessionService.getSavedUserSession();
+      if (savedUser != null) {
+        _dataSource.updateUser(savedUser);
+        _dataSource.setCurrentUser(savedUser);
+        return savedUser;
+      }
+
+      // 2. Fallback to Firebase current user if available
+      final fbUser = _firebaseAuth?.currentUser;
+      if (fbUser != null) {
+        var userDoc = await _firestore.getUser(fbUser.uid);
+        userDoc ??= UserModel(
+          id: fbUser.uid,
+          displayName: fbUser.displayName ?? fbUser.email?.split('@').first ?? 'User',
+          email: fbUser.email ?? '',
+          photoUrl: fbUser.photoURL,
+          role: UserRole.reader,
+          approvalStatus: ApprovalStatus.approved,
+          isActive: true,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+        _dataSource.updateUser(userDoc);
+        _dataSource.setCurrentUser(userDoc);
+        await _sessionService.saveUserSession(userDoc);
+        return userDoc;
+      }
+    } catch (e) {
+      debugPrint('AuthRepositoryImpl: restoreSession error: $e');
+    }
+    return null;
+  }
+
+  @override
   Future<void> signOut() async {
+    try {
+      await _sessionService.clearSession();
+    } catch (e) {
+      debugPrint('SessionService clearSession error: $e');
+    }
+
     try {
       await _firebaseAuth?.signOut();
     } catch (e) {
       debugPrint('Firebase signOut error: $e');
     }
+
+    try {
+      await GoogleSignIn.instance.signOut();
+    } catch (e) {
+      debugPrint('GoogleSignIn signOut error: $e');
+    }
+
     _dataSource.setCurrentUser(null);
   }
 
@@ -267,11 +360,13 @@ class AuthRepositoryImpl implements IAuthRepository {
       final allUsers = _dataSource.getAllUsers();
       final target = allUsers.firstWhere((u) => u.role == newRole);
       _dataSource.setCurrentUser(target);
+      await _sessionService.saveUserSession(target);
       return target;
     }
 
     final updated = current.copyWith(role: newRole, updatedAt: DateTime.now()) as UserModel;
     _dataSource.updateUser(updated);
+    await _sessionService.saveUserSession(updated);
     await _firestore.saveUser(updated);
     return updated;
   }
@@ -289,6 +384,7 @@ class AuthRepositoryImpl implements IAuthRepository {
     ) as UserModel;
 
     _dataSource.updateUser(updated);
+    await _sessionService.saveUserSession(updated);
     await _firestore.saveUser(updated);
     return updated;
   }

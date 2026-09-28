@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 import 'app_routes.dart';
+import '../../features/splash/pages/splash_page.dart';
+import '../../features/splash/bindings/splash_binding.dart';
 import '../../features/auth/pages/auth_page.dart';
 import '../../features/auth/pages/writer_pending_approval_page.dart';
 import '../../features/auth/bindings/auth_binding.dart';
@@ -21,9 +23,14 @@ import '../../features/profile/bindings/profile_binding.dart';
 class AppPages {
   AppPages._();
 
-  static const initial = AppRoutes.auth;
+  static const initial = AppRoutes.initial;
 
   static final routes = [
+    GetPage(
+      name: AppRoutes.initial,
+      page: () => const SplashPage(),
+      binding: SplashBinding(),
+    ),
     GetPage(
       name: AppRoutes.auth,
       page: () => const AuthPage(),

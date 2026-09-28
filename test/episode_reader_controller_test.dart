@@ -24,6 +24,8 @@ class MockAuthRepo implements IAuthRepository {
   @override
   Future<UserEntity> signUpWithEmailPassword(String email, String password, String displayName, UserRole role) async => throw UnimplementedError();
   @override
+  Future<UserEntity?> restoreSession() async => null;
+  @override
   Future<void> signOut() async {}
   @override
   Future<UserEntity> switchRole(UserRole newRole) async => throw UnimplementedError();

@@ -39,6 +39,7 @@ dependencies:
   carousel_slider: ^5.1.2
 
   ## firebase setup
+  material_ui: ^1.0.1
   firebase_core: ^4.14.0
   firebase_auth: ^6.6.1
   cloud_firestore: ^6.9.0
@@ -56,7 +57,7 @@ dependencies:
   curved_labeled_navigation_bar: ^2.0.6
   # shimer
   shimmer: ^4.0.0
-  material_ui: ^1.0.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:

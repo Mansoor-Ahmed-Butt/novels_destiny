@@ -6,6 +6,7 @@ abstract class IAuthRepository {
   Future<UserEntity> signInWithEmailPassword(String email, String password);
   Future<UserEntity> signInWithGoogle();
   Future<UserEntity> signUpWithEmailPassword(String email, String password, String displayName, UserRole role);
+  Future<UserEntity?> restoreSession();
   Future<void> signOut();
   Future<UserEntity> switchRole(UserRole newRole);
   Future<UserEntity> updateProfile({String? displayName, String? bio, String? photoUrl});
