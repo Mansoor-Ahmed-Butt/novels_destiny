@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import '../../../domain/entities/episode_entity.dart';
+import '../../../domain/entities/content_block_entity.dart';
 import '../../../domain/usecases/novel_usecases.dart';
 import '../../../domain/usecases/episode_usecases.dart';
 import '../../../domain/usecases/admin_usecases.dart';
@@ -41,7 +42,79 @@ class NovelDetailsController extends GetxController {
         return;
       }
 
-      final episodes = await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: true);
+      var episodes = await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: true);
+
+      // Auto-fallback: If no episodes exist but novel has manuscript, PDF, or gallery,
+      // create Chapter 1 so the reader can start reading immediately!
+      if (episodes.isEmpty &&
+          ((novel.manuscriptContent != null && novel.manuscriptContent!.isNotEmpty) ||
+              (novel.pdfUrl != null && novel.pdfUrl!.isNotEmpty) ||
+              novel.galleryImageUrls.isNotEmpty)) {
+        final blocks = <ContentBlockEntity>[];
+        int blockOrder = 1;
+
+        for (int i = 0; i < novel.galleryImageUrls.length; i++) {
+          blocks.add(
+            ContentBlockEntity(
+              id: 'block_art_$i',
+              episodeId: 'ep_complete',
+              type: ContentBlockType.image,
+              order: blockOrder++,
+              url: novel.galleryImageUrls[i],
+              caption: 'Illustration ${i + 1}',
+            ),
+          );
+        }
+
+        if (novel.manuscriptContent != null && novel.manuscriptContent!.isNotEmpty) {
+          blocks.add(
+            ContentBlockEntity(
+              id: 'block_text_main',
+              episodeId: 'ep_complete',
+              type: ContentBlockType.text,
+              order: blockOrder++,
+              content: novel.manuscriptContent!,
+            ),
+          );
+        }
+
+        if (novel.pdfUrl != null && novel.pdfUrl!.isNotEmpty) {
+          blocks.add(
+            ContentBlockEntity(
+              id: 'block_pdf_main',
+              episodeId: 'ep_complete',
+              type: ContentBlockType.pdf,
+              order: blockOrder++,
+              url: novel.pdfUrl,
+              fileName: novel.pdfFileName ?? '${novel.title}.pdf',
+            ),
+          );
+        }
+
+        final autoEp = EpisodeEntity(
+          id: 'ep_complete',
+          novelId: novelId,
+          writerId: novel.writerId,
+          episodeNumber: 1,
+          title: novel.pdfUrl != null && (novel.manuscriptContent == null || novel.manuscriptContent!.isEmpty)
+              ? 'Complete Novel (PDF Edition)'
+              : 'Complete Story: ${novel.title}',
+          titleLowercase: 'complete story: ${novel.title.toLowerCase()}',
+          summary: novel.description,
+          content: novel.manuscriptContent ?? '',
+          blocks: blocks,
+          wordCount: (novel.manuscriptContent ?? '').split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length,
+          status: EpisodeStatus.published,
+          createdAt: novel.createdAt,
+          updatedAt: novel.updatedAt,
+          publishedAt: novel.publishedAt ?? DateTime.now(),
+        );
+
+        try {
+          await _episodeUseCases.createEpisode(autoEp);
+          episodes = [autoEp];
+        } catch (_) {}
+      }
 
       final auth = Get.find<AuthController>();
       final uid = auth.currentUser.value?.id ?? '';

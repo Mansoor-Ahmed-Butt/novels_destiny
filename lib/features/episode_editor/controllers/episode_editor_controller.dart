@@ -38,6 +38,7 @@ class EpisodeEditorController extends GetxController {
   final RxList<ContentBlockEntity> blocks = <ContentBlockEntity>[].obs;
 
   late String _currentEpisodeId;
+  bool _isDisposed = false;
 
   @override
   void onInit() {
@@ -76,6 +77,7 @@ class EpisodeEditorController extends GetxController {
   Future<void> _calculateNextEpisodeNumber() async {
     try {
       final episodes = await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: false);
+      if (_isDisposed) return;
       numberController.text = '${episodes.length + 1}';
     } catch (_) {}
   }
@@ -84,6 +86,7 @@ class EpisodeEditorController extends GetxController {
     try {
       isLoading.value = true;
       final ep = await _episodeUseCases.getEpisodeById(novelId, episodeId);
+      if (_isDisposed) return;
       if (ep != null) {
         numberController.text = '${ep.episodeNumber}';
         titleController.text = ep.title;
@@ -95,6 +98,7 @@ class EpisodeEditorController extends GetxController {
       }
       isLoading.value = false;
     } catch (e) {
+      if (_isDisposed) return;
       isLoading.value = false;
       _logger.error('Failed to load episode', e);
     }
@@ -119,7 +123,7 @@ class EpisodeEditorController extends GetxController {
     try {
       final picker = ImagePicker();
       final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1920, imageQuality: 85);
-      if (picked == null) return;
+      if (picked == null || _isDisposed) return;
 
       isUploadingMedia.value = true;
       final result = await _storageService.uploadEpisodeImage(
@@ -127,6 +131,7 @@ class EpisodeEditorController extends GetxController {
         episodeId: _currentEpisodeId,
         filePath: picked.path,
       );
+      if (_isDisposed) return;
 
       final block = ContentBlockEntity(
         id: const Uuid().v4(),
@@ -143,6 +148,7 @@ class EpisodeEditorController extends GetxController {
       isUploadingMedia.value = false;
       Get.snackbar('Image Uploaded', 'Inline image added to chapter.');
     } catch (e) {
+      if (_isDisposed) return;
       isUploadingMedia.value = false;
       Get.snackbar('Upload Error', e.toString());
     }
@@ -154,7 +160,7 @@ class EpisodeEditorController extends GetxController {
         type: FileType.custom,
         allowedExtensions: ['pdf'],
       );
-      if (files.isEmpty || files.first.path == null) return;
+      if (files.isEmpty || files.first.path == null || _isDisposed) return;
 
       isUploadingMedia.value = true;
       final file = files.first;
@@ -165,6 +171,7 @@ class EpisodeEditorController extends GetxController {
         filePath: file.path!,
         originalFileName: file.name,
       );
+      if (_isDisposed) return;
 
       final block = ContentBlockEntity(
         id: const Uuid().v4(),
@@ -181,6 +188,7 @@ class EpisodeEditorController extends GetxController {
       isUploadingMedia.value = false;
       Get.snackbar('PDF Uploaded', 'PDF document added to chapter.');
     } catch (e) {
+      if (_isDisposed) return;
       isUploadingMedia.value = false;
       Get.snackbar('Upload Error', e.toString());
     }
@@ -279,6 +287,7 @@ class EpisodeEditorController extends GetxController {
       } else {
         await _episodeUseCases.createEpisode(episode);
       }
+      if (_isDisposed) return;
 
       hasUnsavedChanges.value = false;
       isSaving.value = false;
@@ -289,6 +298,7 @@ class EpisodeEditorController extends GetxController {
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
+      if (_isDisposed) return;
       isSaving.value = false;
       Get.snackbar('Error', 'Failed to save episode: $e');
     }
@@ -296,6 +306,7 @@ class EpisodeEditorController extends GetxController {
 
   @override
   void onClose() {
+    _isDisposed = true;
     numberController.dispose();
     titleController.dispose();
     summaryController.dispose();

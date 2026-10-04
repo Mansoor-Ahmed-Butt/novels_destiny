@@ -65,7 +65,172 @@ class NovelMetadataSection extends StatelessWidget {
             ],
           ),
         ),
+
+        // Digital PDF Edition Card (if PDF uploaded)
+        if (novel.pdfUrl != null && novel.pdfUrl!.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.l),
+          AppCard(
+            padding: const EdgeInsets.all(AppSpacing.l),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorLight,
+                    borderRadius: BorderRadius.circular(AppRadii.m),
+                  ),
+                  child: const Icon(
+                    Icons.picture_as_pdf_rounded,
+                    color: AppColors.error,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.m),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Digital PDF Book Included',
+                        style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        novel.pdfFileName ?? 'Complete Novel Edition (PDF)',
+                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                  child: Text(
+                    'PDF Ready',
+                    style: AppTextStyles.labelSmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Story Illustrations Gallery (if gallery images uploaded)
+        if (novel.galleryImageUrls.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.l),
+          AppCard(
+            padding: const EdgeInsets.all(AppSpacing.l),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Story Illustrations & Visuals',
+                      style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      '${novel.galleryImageUrls.length} artworks',
+                      style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.m),
+                SizedBox(
+                  height: 110,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: novel.galleryImageUrls.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: AppSpacing.m),
+                    itemBuilder: (context, index) {
+                      final imgUrl = novel.galleryImageUrls[index];
+                      return InkWell(
+                        onTap: () => _showEnlargedImage(context, imgUrl, index),
+                        borderRadius: BorderRadius.circular(AppRadii.m),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadii.m),
+                          child: Container(
+                            width: 80,
+                            height: 110,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: AppColors.cardBorder),
+                              borderRadius: BorderRadius.circular(AppRadii.m),
+                            ),
+                            child: Image.network(
+                              imgUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                color: AppColors.surface,
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.broken_image_rounded,
+                                  color: AppColors.textTertiary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  void _showEnlargedImage(BuildContext context, String url, int index) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadii.card),
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: AppColors.card,
+                  padding: const EdgeInsets.all(32),
+                  child: const Text('Failed to load artwork.'),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: InkWell(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -76,7 +241,7 @@ class NovelMetadataSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadii.m),
-          border: Border.all(color: AppColors.cardBorder.withOpacity(0.8)),
+          border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.8)),
         ),
         child: Column(
           children: [

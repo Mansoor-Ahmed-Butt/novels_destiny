@@ -25,39 +25,49 @@ class AuthPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Brand Header
-                Obx(() => Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: controller.isAdminMode.value ? AppColors.accent : AppColors.primary,
-                    borderRadius: BorderRadius.circular(AppRadii.card),
-                    boxShadow: AppShadows.card,
+                Obx(
+                  () => Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: controller.isAdminMode.value
+                          ? AppColors.accent
+                          : AppColors.primary,
+                      borderRadius: BorderRadius.circular(AppRadii.card),
+                      boxShadow: AppShadows.card,
+                    ),
+                    child: Icon(
+                      controller.isAdminMode.value
+                          ? Icons.admin_panel_settings
+                          : Icons.auto_stories,
+                      color: AppColors.textInverse,
+                      size: 28,
+                    ),
                   ),
-                  child: Icon(
-                    controller.isAdminMode.value
-                        ? Icons.admin_panel_settings
-                        : Icons.auto_stories,
-                    color: AppColors.textInverse,
-                    size: 28,
-                  ),
-                )),
+                ),
                 const SizedBox(height: AppSpacing.l),
-                Obx(() => Text(
-                  controller.isAdminMode.value ? 'Admin Portal' : 'Novels Destiny',
-                  style: AppTextStyles.displayMedium.copyWith(
-                    letterSpacing: -0.5,
+                Obx(
+                  () => Text(
+                    controller.isAdminMode.value
+                        ? 'Admin Portal'
+                        : 'Novels Destiny',
+                    style: AppTextStyles.displayMedium.copyWith(
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                )),
+                ),
                 const SizedBox(height: 4),
-                Obx(() => Text(
-                  controller.isSignUp.value
-                      ? 'Join our community of storytellers'
-                      : controller.isAdminMode.value
-                      ? 'Sign in to access platform administration & moderation'
-                      : 'Sign in to access your library & studio',
-                  style: AppTextStyles.bodyMedium,
-                  textAlign: TextAlign.center,
-                )),
+                Obx(
+                  () => Text(
+                    controller.isSignUp.value
+                        ? 'Join our community of storytellers'
+                        : controller.isAdminMode.value
+                        ? 'Sign in to access platform administration & moderation'
+                        : 'Sign in to access your library & studio',
+                    style: AppTextStyles.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.xl),
 
                 // Form Card
@@ -168,7 +178,8 @@ class AuthPage extends StatelessWidget {
                                 Switch.adaptive(
                                   value: isAdminMode,
                                   activeTrackColor: AppColors.accent,
-                                  onChanged: (val) => controller.toggleAdminMode(val),
+                                  onChanged: (val) =>
+                                      controller.toggleAdminMode(val),
                                 ),
                               ],
                             ),
@@ -203,7 +214,9 @@ class AuthPage extends StatelessWidget {
                                       title: 'Reader',
                                       isSelected:
                                           selectedRole == UserRole.reader,
-                                      onTap: () => controller.setSelectedRole(UserRole.reader),
+                                      onTap: () => controller.setSelectedRole(
+                                        UserRole.reader,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.s),
@@ -212,7 +225,9 @@ class AuthPage extends StatelessWidget {
                                       title: 'Writer',
                                       isSelected:
                                           selectedRole == UserRole.writer,
-                                      onTap: () => controller.setSelectedRole(UserRole.writer),
+                                      onTap: () => controller.setSelectedRole(
+                                        UserRole.writer,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -248,6 +263,7 @@ class AuthPage extends StatelessWidget {
                           prefixIcon: const Icon(Icons.lock_outline, size: 20),
                         ),
                         const SizedBox(height: AppSpacing.xl),
+
                         AppPrimaryButton(
                           label: isSignUp
                               ? (selectedRole == UserRole.writer
@@ -277,6 +293,33 @@ class AuthPage extends StatelessWidget {
                             }
                           },
                         ),
+                        // Admin-block error message
+                        Obx(() {
+                          final msg = controller.adminBlockMessage.value;
+                          if (msg.isEmpty) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.s),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.block,
+                                  size: 16,
+                                  color: AppColors.error,
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    msg,
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.error,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                         const SizedBox(height: AppSpacing.m),
 
                         // Google Sign In (Reader)

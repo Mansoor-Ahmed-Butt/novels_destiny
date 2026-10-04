@@ -31,6 +31,9 @@ class AuthController extends GetxController {
   /// Tracks the selected role for sign-up form
   final Rx<UserRole> selectedRole = Rx<UserRole>(UserRole.reader);
 
+  /// Shown in red when a non-admin user attempts to sign in with the admin email
+  final RxString adminBlockMessage = ''.obs;
+
   // Text controllers for form input fields
   // AuthController owns these controllers to centralize form state management
   // and ensure proper lifecycle disposal through GetX controller lifecycle
@@ -59,6 +62,7 @@ class AuthController extends GetxController {
     if (state.value is AuthFailureState) {
       state.value = const Unauthenticated();
     }
+    adminBlockMessage.value = '';
   }
 
   /// Toggles between sign-in and sign-up form mode, clearing form fields and any active error
@@ -124,7 +128,17 @@ class AuthController extends GetxController {
     return null;
   }
 
+  static const String _adminEmail = 'novelsdestinyadmin@gmail.com';
+
   Future<void> signIn(String email, String password) async {
+    // Block non-admin users from signing in with the admin account
+    if (!isAdminMode.value && email.toLowerCase() == _adminEmail) {
+      adminBlockMessage.value =
+          'You cannot login to the admin account. Enable Admin Mode to proceed.';
+      return;
+    }
+    adminBlockMessage.value = '';
+
     try {
       state.value = const AuthLoading();
       final user = await _authUseCases.signIn(email, password);

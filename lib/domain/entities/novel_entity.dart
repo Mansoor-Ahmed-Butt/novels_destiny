@@ -58,6 +58,11 @@ class NovelEntity {
   final ModerationStatus moderationStatus;
   final bool isDownloadEnabled;
   final String? fullNovelStoragePath;
+  final List<String> galleryImageUrls;
+  final String? pdfUrl;
+  final String? pdfStoragePath;
+  final String? pdfFileName;
+  final String? manuscriptContent;
   final int publishedEpisodeCount;
   final int totalViews;
   final int totalLikes;
@@ -85,6 +90,11 @@ class NovelEntity {
     this.moderationStatus = ModerationStatus.approved,
     this.isDownloadEnabled = false,
     this.fullNovelStoragePath,
+    this.galleryImageUrls = const [],
+    this.pdfUrl,
+    this.pdfStoragePath,
+    this.pdfFileName,
+    this.manuscriptContent,
     this.publishedEpisodeCount = 0,
     this.totalViews = 0,
     this.totalLikes = 0,
@@ -117,6 +127,11 @@ class NovelEntity {
     ModerationStatus? moderationStatus,
     bool? isDownloadEnabled,
     String? fullNovelStoragePath,
+    List<String>? galleryImageUrls,
+    String? pdfUrl,
+    String? pdfStoragePath,
+    String? pdfFileName,
+    String? manuscriptContent,
     int? publishedEpisodeCount,
     int? totalViews,
     int? totalLikes,
@@ -144,6 +159,11 @@ class NovelEntity {
       moderationStatus: moderationStatus ?? this.moderationStatus,
       isDownloadEnabled: isDownloadEnabled ?? this.isDownloadEnabled,
       fullNovelStoragePath: fullNovelStoragePath ?? this.fullNovelStoragePath,
+      galleryImageUrls: galleryImageUrls ?? this.galleryImageUrls,
+      pdfUrl: pdfUrl ?? this.pdfUrl,
+      pdfStoragePath: pdfStoragePath ?? this.pdfStoragePath,
+      pdfFileName: pdfFileName ?? this.pdfFileName,
+      manuscriptContent: manuscriptContent ?? this.manuscriptContent,
       publishedEpisodeCount: publishedEpisodeCount ?? this.publishedEpisodeCount,
       totalViews: totalViews ?? this.totalViews,
       totalLikes: totalLikes ?? this.totalLikes,

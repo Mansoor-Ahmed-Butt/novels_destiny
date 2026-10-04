@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -352,20 +353,35 @@ class EpisodeReaderPage extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadii.m),
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          height: 180,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: theme.textColor.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(AppRadii.m),
-                          ),
-                          alignment: Alignment.center,
-                          child: Icon(Icons.broken_image_rounded, color: theme.textColor.withValues(alpha: 0.4)),
-                        ),
-                      ),
+                      child: imageUrl.startsWith('http://') || imageUrl.startsWith('https://')
+                          ? Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 180,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: theme.textColor.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(AppRadii.m),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(Icons.broken_image_rounded, color: theme.textColor.withValues(alpha: 0.4)),
+                              ),
+                            )
+                          : Image.file(
+                              File(imageUrl),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                height: 180,
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  color: theme.textColor.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(AppRadii.m),
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(Icons.broken_image_rounded, color: theme.textColor.withValues(alpha: 0.4)),
+                              ),
+                            ),
                     ),
                     if (block.caption != null && block.caption!.trim().isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.xs),
@@ -398,7 +414,9 @@ class EpisodeReaderPage extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadii.m),
-                  child: SfPdfViewer.network(pdfUrl),
+                  child: pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://')
+                      ? SfPdfViewer.network(pdfUrl)
+                      : SfPdfViewer.file(File(pdfUrl)),
                 ),
               ),
             );

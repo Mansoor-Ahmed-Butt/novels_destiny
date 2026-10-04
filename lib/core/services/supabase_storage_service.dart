@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'supabase_service.dart';
@@ -44,8 +43,8 @@ class SupabaseStorageService {
   }) async {
     final client = _client;
     if (client == null) {
-      debugPrint('SupabaseStorageService: Supabase not initialized, skipping cover upload.');
-      return '';
+      debugPrint('SupabaseStorageService: Supabase not initialized, using local cover path.');
+      return filePath;
     }
 
     final fileName = filePath.split(Platform.isWindows ? '\\' : '/').last;
@@ -75,10 +74,11 @@ class SupabaseStorageService {
             ),
           );
 
-      return getPublicUrl(deterministicPath);
+      final url = getPublicUrl(deterministicPath);
+      return url.isNotEmpty ? url : filePath;
     } catch (e) {
-      debugPrint('Supabase upload cover error: $e');
-      throw UnknownFailure('Failed to upload cover image. Please check your connection and try again.');
+      debugPrint('Supabase upload cover warning: $e, falling back to local file path.');
+      return filePath;
     }
   }
 
@@ -185,6 +185,124 @@ class SupabaseStorageService {
     } catch (e) {
       debugPrint('Supabase upload PDF error: $e');
       throw UnknownFailure('Failed to upload PDF episode. Please check connection and try again.');
+    }
+  }
+
+  /// Uploads an illustration/image for a novel gallery (up to 5 images).
+  /// Storage path: novels/{novelId}/gallery/image_{timestamp}.jpg
+  Future<Map<String, String>> uploadNovelGalleryImage({
+    required String novelId,
+    required String filePath,
+    Uint8List? fileBytes,
+  }) async {
+    final client = _client;
+    final fileName = filePath.split(Platform.isWindows ? '\\' : '/').last;
+    final ext = fileName.split('.').last.toLowerCase();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final deterministicPath = 'novels/$novelId/gallery/image_$timestamp.$ext';
+
+    Uint8List bytes;
+    if (fileBytes != null) {
+      bytes = fileBytes;
+    } else {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw const NotFoundFailure('Selected image file does not exist.');
+      }
+      bytes = await file.readAsBytes();
+    }
+
+    validateImageFile(sizeBytes: bytes.length, fileName: fileName);
+
+    if (client == null) {
+      debugPrint('SupabaseStorageService: Supabase not initialized, using local gallery file.');
+      return {
+        'storagePath': deterministicPath,
+        'url': filePath,
+      };
+    }
+
+    try {
+      await client.storage.from(bucketName).uploadBinary(
+            deterministicPath,
+            bytes,
+            fileOptions: FileOptions(
+              upsert: true,
+              contentType: _resolveContentType(ext),
+            ),
+          );
+
+      final url = getPublicUrl(deterministicPath);
+      return {
+        'storagePath': deterministicPath,
+        'url': url.isNotEmpty ? url : filePath,
+      };
+    } catch (e) {
+      debugPrint('Supabase upload novel gallery image warning: $e, using local file.');
+      return {
+        'storagePath': deterministicPath,
+        'url': filePath,
+      };
+    }
+  }
+
+  /// Uploads a complete novel PDF document.
+  /// Storage path: novels/{novelId}/documents/{fileName}
+  Future<Map<String, String>> uploadNovelPdf({
+    required String novelId,
+    required String filePath,
+    required String originalFileName,
+    Uint8List? fileBytes,
+  }) async {
+    final client = _client;
+    final safeFileName = originalFileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final deterministicPath = 'novels/$novelId/documents/$safeFileName';
+
+    Uint8List bytes;
+    if (fileBytes != null) {
+      bytes = fileBytes;
+    } else {
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw const NotFoundFailure('Selected PDF file does not exist.');
+      }
+      bytes = await file.readAsBytes();
+    }
+
+    validatePdfFile(sizeBytes: bytes.length, fileName: originalFileName);
+
+    if (client == null) {
+      debugPrint('SupabaseStorageService: Supabase not initialized, using local PDF file.');
+      return {
+        'storagePath': deterministicPath,
+        'url': filePath,
+        'fileName': originalFileName,
+      };
+    }
+
+    try {
+      await client.storage.from(bucketName).uploadBinary(
+            deterministicPath,
+            bytes,
+            fileOptions: const FileOptions(
+              upsert: true,
+              contentType: 'application/pdf',
+            ),
+          );
+
+      final url = getPublicUrl(deterministicPath);
+      return {
+        'storagePath': deterministicPath,
+        'url': url.isNotEmpty ? url : filePath,
+        'fileName': originalFileName,
+      };
+    } catch (e) {
+      debugPrint('Supabase upload novel PDF warning: $e, using local PDF file.');
+      return {
+        'storagePath': deterministicPath,
+        'url': filePath,
+        'fileName': originalFileName,
+      };
     }
   }
 

@@ -59,7 +59,7 @@ class EpisodeListSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: episodes.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.s),
+          separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.s),
           itemBuilder: (context, index) {
             final ep = episodes[index];
             return AppCard(

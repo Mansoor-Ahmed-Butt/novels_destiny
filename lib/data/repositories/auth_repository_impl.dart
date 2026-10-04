@@ -32,6 +32,12 @@ class AuthRepositoryImpl implements IAuthRepository {
 
   AuthRepositoryImpl(this._dataSource);
 
+  /// The single privileged email that is always treated as admin role.
+  static const String _adminEmail = 'novelsdestinyadmin@gmail.com';
+
+  bool _isAdminEmail(String email) =>
+      email.trim().toLowerCase() == _adminEmail;
+
   @override
   Stream<UserEntity?> authStateChanges() {
     return _dataSource.authStateStream;
@@ -58,16 +64,33 @@ class AuthRepositoryImpl implements IAuthRepository {
         final fbUser = credential!.user!;
         var userDoc = await _firestore.getUser(fbUser.uid);
         if (userDoc == null) {
+          // New Firebase user — create Firestore doc, honouring admin email
           userDoc = UserModel(
             id: fbUser.uid,
             displayName: fbUser.displayName ?? email.split('@').first,
             email: fbUser.email ?? email,
             photoUrl: fbUser.photoURL,
-            role: UserRole.reader,
+            role: _isAdminEmail(email) ? UserRole.admin : UserRole.reader,
             approvalStatus: ApprovalStatus.approved,
             isActive: true,
             createdAt: DateTime.now(),
             updatedAt: DateTime.now(),
+          );
+          await _firestore.saveUser(userDoc);
+        } else if (_isAdminEmail(email) && userDoc.role != UserRole.admin) {
+          // Existing doc but role not yet set to admin — promote & persist
+          userDoc = UserModel(
+            id: userDoc.id,
+            displayName: userDoc.displayName,
+            email: userDoc.email,
+            photoUrl: userDoc.photoUrl,
+            role: UserRole.admin,
+            approvalStatus: ApprovalStatus.approved,
+            isActive: userDoc.isActive,
+            createdAt: userDoc.createdAt,
+            updatedAt: DateTime.now(),
+            lastSeenAt: userDoc.lastSeenAt,
+            bio: userDoc.bio,
           );
           await _firestore.saveUser(userDoc);
         }
@@ -297,8 +320,26 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<UserEntity?> restoreSession() async {
     try {
       // 1. Check persistent local session
-      final savedUser = await _sessionService.getSavedUserSession();
+      var savedUser = await _sessionService.getSavedUserSession();
       if (savedUser != null) {
+        // Promote admin email in case the cached session has a stale role
+        if (_isAdminEmail(savedUser.email) && savedUser.role != UserRole.admin) {
+          savedUser = UserModel(
+            id: savedUser.id,
+            displayName: savedUser.displayName,
+            email: savedUser.email,
+            photoUrl: savedUser.photoUrl,
+            role: UserRole.admin,
+            approvalStatus: ApprovalStatus.approved,
+            isActive: savedUser.isActive,
+            createdAt: savedUser.createdAt,
+            updatedAt: DateTime.now(),
+            lastSeenAt: savedUser.lastSeenAt,
+            bio: savedUser.bio,
+          );
+          await _sessionService.saveUserSession(savedUser);
+          try { await _firestore.saveUser(savedUser); } catch (_) {}
+        }
         _dataSource.updateUser(savedUser);
         _dataSource.setCurrentUser(savedUser);
         return savedUser;
@@ -308,12 +349,29 @@ class AuthRepositoryImpl implements IAuthRepository {
       final fbUser = _firebaseAuth?.currentUser;
       if (fbUser != null) {
         var userDoc = await _firestore.getUser(fbUser.uid);
+        // Ensure admin email always gets admin role on session restore
+        if (userDoc != null && _isAdminEmail(userDoc.email) && userDoc.role != UserRole.admin) {
+          userDoc = UserModel(
+            id: userDoc.id,
+            displayName: userDoc.displayName,
+            email: userDoc.email,
+            photoUrl: userDoc.photoUrl,
+            role: UserRole.admin,
+            approvalStatus: ApprovalStatus.approved,
+            isActive: userDoc.isActive,
+            createdAt: userDoc.createdAt,
+            updatedAt: DateTime.now(),
+            lastSeenAt: userDoc.lastSeenAt,
+            bio: userDoc.bio,
+          );
+          await _firestore.saveUser(userDoc);
+        }
         userDoc ??= UserModel(
           id: fbUser.uid,
           displayName: fbUser.displayName ?? fbUser.email?.split('@').first ?? 'User',
           email: fbUser.email ?? '',
           photoUrl: fbUser.photoURL,
-          role: UserRole.reader,
+          role: _isAdminEmail(fbUser.email ?? '') ? UserRole.admin : UserRole.reader,
           approvalStatus: ApprovalStatus.approved,
           isActive: true,
           createdAt: DateTime.now(),
