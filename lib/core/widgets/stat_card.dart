@@ -42,7 +42,7 @@ class StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(AppSpacing.s),
                 decoration: BoxDecoration(
-                  color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+                  color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 18, color: iconColor ?? AppColors.primary),
@@ -152,38 +152,46 @@ class SummaryHeroCard extends StatelessWidget {
           if (subMetrics.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.l),
             Row(
-              children: subMetrics
-                  .map(
-                    (m) => Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(right: AppSpacing.s),
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: AppSpacing.s),
-                        decoration: BoxDecoration(
-                          color: AppColors.card,
-                          borderRadius: BorderRadius.circular(AppRadii.m),
-                          border: Border.all(color: AppColors.cardBorder.withOpacity(0.6)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              m.label,
+              children: [
+                for (int i = 0; i < subMetrics.length; i++)
+                  Expanded(
+                    child: Container(
+                      margin: EdgeInsets.only(right: i == subMetrics.length - 1 ? 0 : AppSpacing.xs),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s, vertical: AppSpacing.s),
+                      decoration: BoxDecoration(
+                        color: AppColors.card,
+                        borderRadius: BorderRadius.circular(AppRadii.m),
+                        border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.6)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              subMetrics[i].label,
+                              maxLines: 1,
                               style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              m.value,
+                          ),
+                          const SizedBox(height: 2),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              subMetrics[i].value,
                               style: AppTextStyles.titleSmall.copyWith(
                                 color: AppColors.textPrimary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                  .toList(),
+                  ),
+              ],
             ),
           ],
         ],

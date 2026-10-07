@@ -9,7 +9,6 @@ import '../../../core/services/logger_service.dart';
 import '../states/episode_reader_state.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../core/services/ad_service.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class EpisodeReaderController extends GetxController {
   final String novelId;
@@ -36,13 +35,6 @@ class EpisodeReaderController extends GetxController {
   final RxDouble lineHeight = 1.7.obs;
   final RxBool showControls = true.obs;
 
-  // Ad State Management
-  /// Tracks whether the reader banner ad has loaded successfully
-  final RxBool isAdLoaded = false.obs;
-
-  /// Holds the banner ad instance (nullable)
-  final Rx<BannerAd?> bannerAd = Rx<BannerAd?>(null);
-
   late String _currentEpisodeId;
   Timer? _progressDebounce;
 
@@ -55,6 +47,9 @@ class EpisodeReaderController extends GetxController {
   }
 
   Future<void> loadEpisode(String episodeId) async {
+    final role = Get.find<AuthController>().currentUser.value?.role;
+    await AdService().showInterstitialForEpisode(episodeId, role: role);
+
     try {
       state.value = const EpisodeReaderLoading();
       _currentEpisodeId = episodeId;
@@ -65,21 +60,23 @@ class EpisodeReaderController extends GetxController {
         return;
       }
 
-      final allEpisodes = await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: true);
+      final allEpisodes =
+          await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: true);
       final currentEpIdx = allEpisodes.indexWhere((e) => e.id == episodeId);
       if (currentEpIdx < 0) {
         state.value = const EpisodeReaderFailure('Episode not found');
         return;
       }
 
-      final currentEp = allEpisodes[currentEpIdx];
+      final currentEp =
+          await _episodeUseCases.getEpisodeById(novelId, episodeId) ??
+              allEpisodes[currentEpIdx];
       final prevEp = currentEpIdx > 0 ? allEpisodes[currentEpIdx - 1] : null;
-      final nextEp = currentEpIdx < allEpisodes.length - 1 ? allEpisodes[currentEpIdx + 1] : null;
+      final nextEp =
+          currentEpIdx < allEpisodes.length - 1 ? allEpisodes[currentEpIdx + 1] : null;
 
-      // Increment view count
       _episodeUseCases.incrementEpisodeView(novelId, episodeId);
 
-      // Check saved progress
       final auth = Get.find<AuthController>();
       final uid = auth.currentUser.value?.id;
       double savedProgress = 0.0;
@@ -99,7 +96,6 @@ class EpisodeReaderController extends GetxController {
         progressPercent: savedProgress,
       );
 
-      // Scroll to top or saved offset on load
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
       }
@@ -142,7 +138,9 @@ class EpisodeReaderController extends GetxController {
             updatedAt: DateTime.now(),
           ),
         );
-        _logger.debug('Progress auto-saved for novel $novelId, ep ${s.currentEpisode.episodeNumber}: ${(progressPercent * 100).toInt()}%');
+        _logger.debug(
+          'Progress auto-saved for novel $novelId, ep ${s.currentEpisode.episodeNumber}: ${(progressPercent * 100).toInt()}%',
+        );
       }
     });
   }
@@ -178,39 +176,12 @@ class EpisodeReaderController extends GetxController {
   void goToNextEpisode() {
     final s = state.value;
     if (s is EpisodeReaderReady && s.nextEpisode != null) {
-      AdService().showInterstitial(
-        onDismiss: () {
-          loadEpisode(s.nextEpisode!.id);
-        },
-      );
+      loadEpisode(s.nextEpisode!.id);
     }
-  }
-
-  /// Load banner ad for episode reader
-  ///
-  /// Creates a banner ad with callbacks that update reactive observables.
-  /// Ad is automatically disposed when controller is closed.
-  void loadReaderAd() {
-    final ad = AdService().createBannerAd(
-      onAdLoaded: () {
-        isAdLoaded.value = true;
-      },
-      onAdFailedToLoad: (error) {
-        isAdLoaded.value = false;
-        _logger.warning('Reader banner ad failed to load: $error');
-      },
-    );
-
-    bannerAd.value = ad;
-    ad?.load();
   }
 
   @override
   void onClose() {
-    // Dispose ad if exists
-    bannerAd.value?.dispose();
-    bannerAd.value = null;
-
     _progressDebounce?.cancel();
     scrollController.dispose();
     super.onClose();

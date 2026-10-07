@@ -17,12 +17,7 @@ class EpisodeEditorController extends GetxController {
   final ILoggerService _logger;
   final SupabaseStorageService _storageService = SupabaseStorageService();
 
-  EpisodeEditorController(
-    this.novelId,
-    this.existingEpisodeId,
-    this._episodeUseCases,
-    this._logger,
-  );
+  EpisodeEditorController(this.novelId, this.existingEpisodeId, this._episodeUseCases, this._logger);
 
   final RxBool isLoading = false.obs;
   final RxBool isSaving = false.obs;
@@ -39,6 +34,9 @@ class EpisodeEditorController extends GetxController {
 
   late String _currentEpisodeId;
   bool _isDisposed = false;
+  bool _isCleaningUp = false;
+  VoidCallback? _contentListenerRemover;
+  VoidCallback? _titleListenerRemover;
 
   @override
   void onInit() {
@@ -52,15 +50,33 @@ class EpisodeEditorController extends GetxController {
     }
 
     contentController.addListener(_onContentChanged);
-    titleController.addListener(() => hasUnsavedChanges.value = true);
+    _contentListenerRemover = () {
+      try {
+        contentController.removeListener(_onContentChanged);
+      } catch (_) {}
+    };
+
+    void titleListener() {
+      if (_isDisposed) return;
+      hasUnsavedChanges.value = true;
+    }
+
+    titleController.addListener(titleListener);
+    _titleListenerRemover = () {
+      try {
+        titleController.removeListener(titleListener);
+      } catch (_) {}
+    };
   }
 
   void _onContentChanged() {
+    if (_isDisposed) return;
     hasUnsavedChanges.value = true;
     _recalculateWordCount();
   }
 
   void _recalculateWordCount() {
+    if (_isDisposed) return;
     int total = 0;
     final primaryText = contentController.text.trim();
     if (primaryText.isNotEmpty) {
@@ -94,9 +110,11 @@ class EpisodeEditorController extends GetxController {
         contentController.text = ep.content;
         blocks.assignAll(ep.effectiveBlocks);
         _recalculateWordCount();
-        hasUnsavedChanges.value = false;
       }
       isLoading.value = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!_isDisposed) hasUnsavedChanges.value = false;
+      });
     } catch (e) {
       if (_isDisposed) return;
       isLoading.value = false;
@@ -106,14 +124,9 @@ class EpisodeEditorController extends GetxController {
 
   // ================= CONTENT BLOCKS ACTIONS =================
   void addTextBlock(String text) {
+    if (_isDisposed) return;
     if (text.trim().isEmpty) return;
-    final newBlock = ContentBlockEntity(
-      id: const Uuid().v4(),
-      episodeId: _currentEpisodeId,
-      type: ContentBlockType.text,
-      order: blocks.length + 1,
-      content: text.trim(),
-    );
+    final newBlock = ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.text, order: blocks.length + 1, content: text.trim());
     blocks.add(newBlock);
     hasUnsavedChanges.value = true;
     _recalculateWordCount();
@@ -126,22 +139,10 @@ class EpisodeEditorController extends GetxController {
       if (picked == null || _isDisposed) return;
 
       isUploadingMedia.value = true;
-      final result = await _storageService.uploadEpisodeImage(
-        novelId: novelId,
-        episodeId: _currentEpisodeId,
-        filePath: picked.path,
-      );
+      final result = await _storageService.uploadEpisodeImage(novelId: novelId, episodeId: _currentEpisodeId, filePath: picked.path);
       if (_isDisposed) return;
 
-      final block = ContentBlockEntity(
-        id: const Uuid().v4(),
-        episodeId: _currentEpisodeId,
-        type: ContentBlockType.image,
-        order: blocks.length + 1,
-        storagePath: result['storagePath'],
-        url: result['url'],
-        caption: picked.name,
-      );
+      final block = ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.image, order: blocks.length + 1, storagePath: result['storagePath'], url: result['url'], caption: picked.name);
 
       blocks.add(block);
       hasUnsavedChanges.value = true;
@@ -156,32 +157,16 @@ class EpisodeEditorController extends GetxController {
 
   Future<void> pickAndAddPdf() async {
     try {
-      final files = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'],
-      );
+      final files = await FilePicker.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
       if (files.isEmpty || files.first.path == null || _isDisposed) return;
 
       isUploadingMedia.value = true;
       final file = files.first;
 
-      final uploadRes = await _storageService.uploadEpisodePdf(
-        novelId: novelId,
-        episodeId: _currentEpisodeId,
-        filePath: file.path!,
-        originalFileName: file.name,
-      );
+      final uploadRes = await _storageService.uploadEpisodePdf(novelId: novelId, episodeId: _currentEpisodeId, filePath: file.path!, originalFileName: file.name);
       if (_isDisposed) return;
 
-      final block = ContentBlockEntity(
-        id: const Uuid().v4(),
-        episodeId: _currentEpisodeId,
-        type: ContentBlockType.pdf,
-        order: blocks.length + 1,
-        storagePath: uploadRes['storagePath'],
-        url: uploadRes['url'],
-        fileName: file.name,
-      );
+      final block = ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.pdf, order: blocks.length + 1, storagePath: uploadRes['storagePath'], url: uploadRes['url'], fileName: file.name);
 
       blocks.add(block);
       hasUnsavedChanges.value = true;
@@ -195,19 +180,15 @@ class EpisodeEditorController extends GetxController {
   }
 
   void addAdBlock() {
-    final block = ContentBlockEntity(
-      id: const Uuid().v4(),
-      episodeId: _currentEpisodeId,
-      type: ContentBlockType.ad,
-      order: blocks.length + 1,
-      placement: 'inline',
-    );
+    if (_isDisposed) return;
+    final block = ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.ad, order: blocks.length + 1, placement: 'inline');
     blocks.add(block);
     hasUnsavedChanges.value = true;
     Get.snackbar('Ad Placement Added', 'An inline advertisement block will appear here for readers.');
   }
 
   void removeBlock(int index) {
+    if (_isDisposed) return;
     if (index >= 0 && index < blocks.length) {
       blocks.removeAt(index);
       _reindexBlocks();
@@ -217,6 +198,7 @@ class EpisodeEditorController extends GetxController {
   }
 
   void reorderBlocks(int oldIndex, int newIndex) {
+    if (_isDisposed) return;
     if (newIndex > oldIndex) newIndex -= 1;
     final item = blocks.removeAt(oldIndex);
     blocks.insert(newIndex, item);
@@ -225,6 +207,7 @@ class EpisodeEditorController extends GetxController {
   }
 
   void _reindexBlocks() {
+    if (_isDisposed) return;
     for (int i = 0; i < blocks.length; i++) {
       blocks[i] = blocks[i].copyWith(order: i + 1);
     }
@@ -232,6 +215,7 @@ class EpisodeEditorController extends GetxController {
 
   // ================= SAVE & PUBLISH =================
   Future<void> saveEpisode({required bool publishImmediately}) async {
+    if (_isDisposed || _isCleaningUp) return;
     if (titleController.text.trim().isEmpty) {
       Get.snackbar('Validation', 'Please provide a title for this episode.');
       return;
@@ -247,6 +231,11 @@ class EpisodeEditorController extends GetxController {
       isSaving.value = true;
       final auth = Get.find<AuthController>();
       final user = auth.currentUser.value;
+      if (user == null) {
+        isSaving.value = false;
+        Get.snackbar('Sign In Required', 'Please sign in to save this episode.');
+        return;
+      }
 
       final epNumber = int.tryParse(numberController.text) ?? 1;
       final status = publishImmediately ? EpisodeStatus.published : EpisodeStatus.draft;
@@ -254,21 +243,13 @@ class EpisodeEditorController extends GetxController {
       // Build effective blocks list
       List<ContentBlockEntity> finalBlocks = List<ContentBlockEntity>.from(blocks);
       if (finalBlocks.isEmpty && contentController.text.trim().isNotEmpty) {
-        finalBlocks.add(
-          ContentBlockEntity(
-            id: const Uuid().v4(),
-            episodeId: _currentEpisodeId,
-            type: ContentBlockType.text,
-            order: 1,
-            content: contentController.text.trim(),
-          ),
-        );
+        finalBlocks.add(ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.text, order: 1, content: contentController.text.trim()));
       }
 
       final episode = EpisodeEntity(
         id: _currentEpisodeId,
         novelId: novelId,
-        writerId: user?.id ?? 'writer_1',
+        writerId: user.id,
         episodeNumber: epNumber,
         title: titleController.text.trim(),
         titleLowercase: titleController.text.trim().toLowerCase(),
@@ -291,12 +272,17 @@ class EpisodeEditorController extends GetxController {
 
       hasUnsavedChanges.value = false;
       isSaving.value = false;
+      _isCleaningUp = true;
+
+      final tag = '$novelId-${existingEpisodeId ?? "__new__"}';
       Get.back();
-      Get.snackbar(
-        publishImmediately ? 'Episode Published' : 'Draft Saved',
-        publishImmediately ? 'Readers can now discover Chapter $epNumber!' : 'Episode saved to your draft workspace.',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (Get.isRegistered<EpisodeEditorController>(tag: tag)) {
+          Get.delete<EpisodeEditorController>(tag: tag, force: true);
+        }
+      });
+
+      Get.snackbar(publishImmediately ? 'Episode Published' : 'Draft Saved', publishImmediately ? 'Readers can now discover Chapter $epNumber!' : 'Episode saved to your draft workspace.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       if (_isDisposed) return;
       isSaving.value = false;
@@ -306,11 +292,31 @@ class EpisodeEditorController extends GetxController {
 
   @override
   void onClose() {
+    if (_isCleaningUp) {
+      super.onClose();
+      return;
+    }
+    _isCleaningUp = true;
     _isDisposed = true;
-    numberController.dispose();
-    titleController.dispose();
-    summaryController.dispose();
-    contentController.dispose();
+
+    try {
+      _contentListenerRemover?.call();
+      _contentListenerRemover = null;
+    } catch (_) {}
+    try {
+      _titleListenerRemover?.call();
+      _titleListenerRemover = null;
+    } catch (_) {}
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        numberController.dispose();
+        titleController.dispose();
+        summaryController.dispose();
+        contentController.dispose();
+      } catch (_) {}
+    });
+
     super.onClose();
   }
 }

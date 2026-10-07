@@ -36,15 +36,14 @@ class MockAuthRepo implements IAuthRepository {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('EpisodeReaderController Ad State Tests', () {
-    late AppDataSource dataSource;
+  group('EpisodeReaderController', () {
     late NovelUseCases novelUseCases;
     late EpisodeUseCases episodeUseCases;
     late ILoggerService logger;
 
     setUp(() {
       Get.reset();
-      dataSource = AppDataSource();
+      final dataSource = AppDataSource();
       final novelRepo = NovelRepositoryImpl(dataSource);
       final episodeRepo = EpisodeRepositoryImpl(dataSource);
       novelUseCases = NovelUseCases(novelRepo);
@@ -58,7 +57,7 @@ void main() {
       Get.reset();
     });
 
-    test('Initializes ad observables correctly', () {
+    test('Initializes reader customization defaults', () {
       final controller = EpisodeReaderController(
         'novel_1',
         'ep_1',
@@ -67,11 +66,11 @@ void main() {
         logger,
       );
 
-      expect(controller.isAdLoaded.value, false);
-      expect(controller.bannerAd.value, isNull);
+      expect(controller.fontSize.value, 17.0);
+      expect(controller.showControls.value, isTrue);
     });
 
-    test('Disposes ad resources properly on onClose', () {
+    test('Disposes scroll controller on onClose', () {
       final controller = EpisodeReaderController(
         'novel_1',
         'ep_1',
@@ -80,11 +79,8 @@ void main() {
         logger,
       );
 
-      expect(controller.bannerAd.value, isNull);
-
       controller.onClose();
-
-      expect(controller.bannerAd.value, isNull);
+      expect(controller.scrollController.hasClients, isFalse);
     });
   });
 }

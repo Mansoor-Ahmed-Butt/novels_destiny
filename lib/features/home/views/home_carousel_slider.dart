@@ -6,27 +6,7 @@ import '../../../app/theme/app_theme.dart';
 import '../../../domain/entities/novel_entity.dart';
 import '../controllers/home_carousel_controller.dart';
 
-class CarouselSlideData {
-  final String imagePath;
-  final String badgeText;
-  final String title;
-  final String genreText;
-  final String description;
-  final String rating;
-  final String? novelId;
-
-  const CarouselSlideData({
-    required this.imagePath,
-    required this.badgeText,
-    required this.title,
-    required this.genreText,
-    required this.description,
-    required this.rating,
-    this.novelId,
-  });
-}
-
-class HomeCarouselSlider extends StatelessWidget {
+class HomeCarouselSlider extends StatefulWidget {
   final List<NovelEntity> novels;
   final ValueChanged<NovelEntity>? onNovelTap;
 
@@ -36,105 +16,76 @@ class HomeCarouselSlider extends StatelessWidget {
     this.onNovelTap,
   });
 
-  static const List<CarouselSlideData> _slides = [
-    CarouselSlideData(
-      imagePath: 'assets/imgs/img1.jpg',
-      badgeText: 'FEATURED PICK',
-      title: 'The Clockwork Alchemist',
-      genreText: 'Steampunk • Alchemy',
-      description: 'In steam-shrouded Oakhaven, forbidden transmutation awakens an ancient destiny.',
-      rating: '4.9 ★',
-      novelId: 'novel_1',
-    ),
-    CarouselSlideData(
-      imagePath: 'assets/imgs/img2.jpg',
-      badgeText: 'TRENDING NOW',
-      title: 'Whispers Across the Moors',
-      genreText: 'Gothic • Romance',
-      description: 'Seven iron keys unlock the haunting secrets of Yorkshire’s Blackwood Manor.',
-      rating: '4.8 ★',
-      novelId: 'novel_2',
-    ),
-    CarouselSlideData(
-      imagePath: 'assets/imgs/img3.jpg',
-      badgeText: 'NEW EPISODE',
-      title: 'Echoes of the Starlit Citadel',
-      genreText: 'Sci-Fi • Space Opera',
-      description: 'Kai navigates the Orion nebula to safeguard the starlight conjunction core.',
-      rating: '5.0 ★',
-      novelId: 'novel_3',
-    ),
-    CarouselSlideData(
-      imagePath: 'assets/imgs/img4.jpg',
-      badgeText: 'STAFF CHOICE',
-      title: 'The Silent Cartographer',
-      genreText: 'High Fantasy',
-      description: 'Mapping the shifting realms beyond the Sunken Veil before time dissolves.',
-      rating: '4.9 ★',
-      novelId: 'novel_4',
-    ),
-    CarouselSlideData(
-      imagePath: 'assets/imgs/img5.jpg',
-      badgeText: 'TOP RATED',
-      title: 'Celestial Veil',
-      genreText: 'Mythic • Adventure',
-      description: 'An ancient codex reveals constellations bound to human destiny.',
-      rating: '4.9 ★',
-      novelId: 'novel_1',
-    ),
-  ];
+  @override
+  State<HomeCarouselSlider> createState() => _HomeCarouselSliderState();
+}
 
-  void _handleSlideTap(CarouselSlideData slide) {
-    if (novels.isNotEmpty && onNovelTap != null) {
-      final match = novels.firstWhere(
-        (n) => n.id == slide.novelId || n.title.toLowerCase() == slide.title.toLowerCase(),
-        orElse: () => novels.first,
-      );
-      onNovelTap!(match);
+class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
+  // Unique tag per instance so multiple carousels never clash
+  static const _tag = 'home_carousel';
+  late final HomeCarouselController _carouselCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    // Register only once, reuse if already registered (e.g. hot-reload)
+    _carouselCtrl = Get.isRegistered<HomeCarouselController>(tag: _tag)
+        ? Get.find<HomeCarouselController>(tag: _tag)
+        : Get.put(HomeCarouselController(), tag: _tag, permanent: false);
+  }
+
+  @override
+  void dispose() {
+    // Clean up when the widget is removed from the tree
+    if (Get.isRegistered<HomeCarouselController>(tag: _tag)) {
+      Get.delete<HomeCarouselController>(tag: _tag, force: true);
     }
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(HomeCarouselController());
+    // If no real novels yet, show a placeholder
+    if (widget.novels.isEmpty) {
+      return _EmptyCarouselPlaceholder();
+    }
+
+    final controller = _carouselCtrl;
 
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1024;
     final isTablet = screenWidth >= 600 && screenWidth < 1024;
 
-    // Proportions optimized for center focus (portrait book-card style)
     final double sliderHeight = isDesktop ? 390.0 : (isTablet ? 370.0 : 350.0);
     final double viewportFraction = isDesktop ? 0.35 : (isTablet ? 0.50 : 0.70);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Carousel Slider from carousel_slider package
         CarouselSlider.builder(
           carouselController: controller.carouselController,
-          itemCount: _slides.length,
+          itemCount: widget.novels.length,
           options: CarouselOptions(
             height: sliderHeight,
             viewportFraction: viewportFraction,
-            autoPlay: true,
+            autoPlay: widget.novels.length > 1,
             autoPlayInterval: const Duration(milliseconds: 4000),
             autoPlayAnimationDuration: const Duration(milliseconds: 650),
             autoPlayCurve: Curves.easeInOutCubic,
             enlargeCenterPage: true,
             enlargeFactor: 0.32,
             enlargeStrategy: CenterPageEnlargeStrategy.scale,
-            enableInfiniteScroll: true,
+            enableInfiniteScroll: widget.novels.length > 1,
             padEnds: true,
             onPageChanged: controller.onPageChanged,
           ),
           itemBuilder: (context, index, realIndex) {
-            final slide = _slides[index];
+            final novel = widget.novels[index];
             return Padding(
-              // Spacing between adjacent images
               padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
               child: Obx(() {
                 final isActive = controller.currentIndex.value == index;
-                return _buildSlideCard(slide, isActive: isActive);
+                return _buildSlideCard(novel, isActive: isActive);
               }),
             );
           },
@@ -142,55 +93,62 @@ class HomeCarouselSlider extends StatelessWidget {
 
         const SizedBox(height: AppSpacing.l),
 
-        // Animated Page Indicator with direct tap support
-        Center(
-          child: Obx(() => Row(
-            mainAxisSize: MainAxisSize.min,
-            children: List.generate(_slides.length, (index) {
-              final isActive = controller.currentIndex.value == index;
-              return GestureDetector(
-                onTap: () => controller.animateToSlide(index),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                  width: isActive ? 24.0 : 8.0,
-                  height: 7.0,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadii.pill),
-                    gradient: isActive
-                        ? const LinearGradient(
-                            colors: [
-                              Color(0xFFFFDFB0),
-                              AppColors.accent,
-                              Color(0xFFC47B49),
-                            ],
-                          )
-                        : null,
-                    color: isActive ? null : AppColors.cardBorder,
-                    boxShadow: isActive
-                        ? [
-                            BoxShadow(
-                              color: AppColors.accent.withValues(alpha: 0.55),
-                              blurRadius: 8,
-                              spreadRadius: 1,
-                              offset: const Offset(0, 1),
-                            ),
-                          ]
-                        : null,
+        // Animated Page Indicator
+        if (widget.novels.length > 1)
+          Center(
+            child: Obx(() => Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(widget.novels.length, (index) {
+                final isActive = controller.currentIndex.value == index;
+                return GestureDetector(
+                  onTap: () => controller.animateToSlide(index),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                    width: isActive ? 24.0 : 8.0,
+                    height: 7.0,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppRadii.pill),
+                      gradient: isActive
+                          ? const LinearGradient(
+                              colors: [
+                                Color(0xFFFFDFB0),
+                                AppColors.accent,
+                                Color(0xFFC47B49),
+                              ],
+                            )
+                          : null,
+                      color: isActive ? null : AppColors.cardBorder,
+                      boxShadow: isActive
+                          ? [
+                              BoxShadow(
+                                color: AppColors.accent.withValues(alpha: 0.55),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                                offset: const Offset(0, 1),
+                              ),
+                            ]
+                          : null,
+                    ),
                   ),
-                ),
-              );
-            }),
-          )),
-        ),
+                );
+              }),
+            )),
+          ),
       ],
     );
   }
 
-  Widget _buildSlideCard(CarouselSlideData slide, {bool isActive = true}) {
+  Widget _buildSlideCard(NovelEntity novel, {bool isActive = true}) {
+    final badgeText = novel.status == NovelStatus.completed
+        ? 'COMPLETED'
+        : novel.publishedEpisodeCount > 0
+            ? 'CHAPTER ${novel.publishedEpisodeCount}'
+            : 'NEW STORY';
+
     return GestureDetector(
-      onTap: () => _handleSlideTap(slide),
+      onTap: () => widget.onNovelTap?.call(novel),
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
         opacity: isActive ? 1.0 : 0.70,
@@ -198,17 +156,16 @@ class HomeCarouselSlider extends StatelessWidget {
           duration: const Duration(milliseconds: 300),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadii.xl),
-            // Lightning Glowing Illuminated Border for active center card
             gradient: isActive
                 ? const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color(0xFFFFE8C2), // Glowing gold apex
-                      Color(0xFFE5A86D), // Warm amber
-                      Color(0xFFC47B49), // Terracotta
-                      Color(0xFFFFDFB0), // Radiant highlight
-                      Color(0xFF8B4D24), // Rich depth accent
+                      Color(0xFFFFE8C2),
+                      Color(0xFFE5A86D),
+                      Color(0xFFC47B49),
+                      Color(0xFFFFDFB0),
+                      Color(0xFF8B4D24),
                     ],
                     stops: [0.0, 0.25, 0.55, 0.8, 1.0],
                   )
@@ -222,14 +179,12 @@ class HomeCarouselSlider extends StatelessWidget {
                   ),
             boxShadow: isActive
                 ? [
-                    // Ambient lightning aura shadow
                     BoxShadow(
                       color: const Color(0xFFC47B49).withValues(alpha: 0.42),
                       blurRadius: 18,
                       spreadRadius: 1.5,
                       offset: const Offset(0, 6),
                     ),
-                    // Inner incandescent spark
                     BoxShadow(
                       color: const Color(0xFFFFD580).withValues(alpha: 0.32),
                       blurRadius: 10,
@@ -245,32 +200,16 @@ class HomeCarouselSlider extends StatelessWidget {
                     ),
                   ],
           ),
-          // Border wrapper for glowing gradient stroke
           padding: EdgeInsets.all(isActive ? 2.2 : 1.2),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadii.xl - 2),
             child: Stack(
               fit: StackFit.expand,
               children: [
-                // Clean Asset Image as the direct background
-                Image.asset(
-                  slide.imagePath,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: AppColors.surfaceMuted,
-                      child: const Center(
-                        child: Icon(
-                          Icons.menu_book_rounded,
-                          color: AppColors.accent,
-                          size: 48,
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                // Novel cover image
+                _buildCoverImage(novel.coverUrl),
 
-                // Bottom gradient only (for clean, legible text without heavy dark background)
+                // Bottom gradient overlay
                 Positioned.fill(
                   child: DecoratedBox(
                     decoration: BoxDecoration(
@@ -289,24 +228,20 @@ class HomeCarouselSlider extends StatelessWidget {
                   ),
                 ),
 
-                // Content Layout (Portrait layout optimized for tall height & narrower width)
+                // Content
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.m),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Top Row: Glowing Badge & Rating
+                      // Top Row: Badge & Rating
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          // Glassmorphic Glowing Lightning Badge
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 4,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.50),
                               borderRadius: BorderRadius.circular(AppRadii.pill),
@@ -324,14 +259,10 @@ class HomeCarouselSlider extends StatelessWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.bolt_rounded,
-                                  size: 12,
-                                  color: Color(0xFFFFDFB0),
-                                ),
+                                const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFFFFDFB0)),
                                 const SizedBox(width: 3),
                                 Text(
-                                  slide.badgeText,
+                                  badgeText,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.w800,
@@ -342,22 +273,15 @@ class HomeCarouselSlider extends StatelessWidget {
                               ],
                             ),
                           ),
-
-                          // Rating Tag
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3.5,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.45),
                               borderRadius: BorderRadius.circular(AppRadii.pill),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.25),
-                              ),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                             ),
                             child: Text(
-                              slide.rating,
+                              novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : '— ★',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
@@ -368,25 +292,23 @@ class HomeCarouselSlider extends StatelessWidget {
                         ],
                       ),
 
-                      // Bottom Content Section: Genre, Title, Description, and CTA Button
+                      // Bottom Content
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Genre
-                          Text(
-                            slide.genreText.toUpperCase(),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: const Color(0xFFFFDFB0).withValues(alpha: 0.95),
-                              letterSpacing: 1.0,
+                          if (novel.genreIds.isNotEmpty)
+                            Text(
+                              novel.genreIds.take(2).join(' • ').toUpperCase(),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFFFFDFB0).withValues(alpha: 0.95),
+                                letterSpacing: 1.0,
+                              ),
                             ),
-                          ),
                           const SizedBox(height: 3),
-
-                          // Story Title
                           Text(
-                            slide.title,
+                            novel.title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.merriweather(
@@ -404,21 +326,18 @@ class HomeCarouselSlider extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-
-                          // Story Description
-                          Text(
-                            slide.description,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11.5,
-                              color: Colors.white.withValues(alpha: 0.85),
-                              height: 1.35,
+                          if (novel.description.isNotEmpty)
+                            Text(
+                              novel.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                color: Colors.white.withValues(alpha: 0.85),
+                                height: 1.35,
+                              ),
                             ),
-                          ),
                           const SizedBox(height: AppSpacing.m),
-
-                          // "Read Now" Radiant Action Button
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(vertical: 8.5),
@@ -451,11 +370,7 @@ class HomeCarouselSlider extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 5),
-                                const Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 14,
-                                  color: Colors.white,
-                                ),
+                                const Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
                               ],
                             ),
                           ),
@@ -468,6 +383,67 @@ class HomeCarouselSlider extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCoverImage(String? coverUrl) {
+    if (coverUrl != null && coverUrl.isNotEmpty) {
+      return Image.network(
+        coverUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _fallbackCover(),
+      );
+    }
+    return _fallbackCover();
+  }
+
+  Widget _fallbackCover() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.menu_book_rounded, color: AppColors.accent, size: 48),
+      ),
+    );
+  }
+}
+
+class _EmptyCarouselPlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppRadii.xl),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+        ),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.library_books_outlined, size: 56, color: AppColors.accent),
+          const SizedBox(height: 16),
+          Text(
+            'No stories published yet',
+            style: AppTextStyles.titleMedium.copyWith(color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Admin or writers can publish novels from the Studio tab.',
+            textAlign: TextAlign.center,
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+          ),
+        ],
       ),
     );
   }

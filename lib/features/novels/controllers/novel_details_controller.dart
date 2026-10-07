@@ -9,6 +9,7 @@ import '../../../core/services/logger_service.dart';
 import '../states/novel_details_state.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../app/routes/app_routes.dart';
+import '../../../core/services/ad_service.dart';
 
 class NovelDetailsController extends GetxController {
   final String novelId;
@@ -130,6 +131,8 @@ class NovelDetailsController extends GetxController {
         isSaved: isSaved,
         readingProgress: progress,
       );
+
+      AdService().preloadInterstitial();
     } catch (e) {
       state.value = NovelDetailsFailure('Failed to load story: $e');
       _logger.error('Failed to load novel details', e);

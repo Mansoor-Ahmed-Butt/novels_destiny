@@ -10,8 +10,12 @@ import '../controllers/episode_reader_controller.dart';
 import '../states/episode_reader_state.dart';
 import '../widgets/reader_settings_sheet.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import '../../../core/services/ad_service.dart';
+import '../../../core/services/episode_reader_ad_placements.dart';
 import '../../../domain/entities/content_block_entity.dart';
+import '../../../domain/entities/user_entity.dart';
+import '../../auth/controllers/auth_controller.dart';
+import '../widgets/reader_inline_banner_ad.dart';
 
 class EpisodeReaderPage extends StatelessWidget {
   const EpisodeReaderPage({super.key});
@@ -21,6 +25,8 @@ class EpisodeReaderPage extends StatelessWidget {
     final novelId = Get.parameters['novelId'] ?? '';
     final episodeId = Get.parameters['episodeId'] ?? '';
     final ctrl = Get.find<EpisodeReaderController>(tag: '$novelId-$episodeId');
+    final userRole = Get.find<AuthController>().currentUser.value?.role;
+    final showAds = AdService().shouldShowAdsFor(role: userRole);
 
     return Obx(() {
       final state = ctrl.state.value;
@@ -101,7 +107,16 @@ class EpisodeReaderPage extends StatelessWidget {
                             const SizedBox(height: AppSpacing.xl),
 
                             // Main Story Content (Sequential Content Blocks)
-                            ..._buildContentBlocks(ctrl, theme, currentEpisode.effectiveBlocks),
+                            ..._buildContentBlocks(
+                              ctrl,
+                              theme,
+                              EpisodeReaderAdPlacements.forReading(
+                                currentEpisode.effectiveBlocks,
+                                episodeId: currentEpisode.id,
+                                injectAds: showAds,
+                              ),
+                              userRole: userRole,
+                            ),
 
                             const SizedBox(height: AppSpacing.xxxl),
                             Divider(
@@ -303,8 +318,9 @@ class EpisodeReaderPage extends StatelessWidget {
   List<Widget> _buildContentBlocks(
     EpisodeReaderController ctrl,
     ReaderColorTheme theme,
-    List<ContentBlockEntity> blocks,
-  ) {
+    List<ContentBlockEntity> blocks, {
+    UserRole? userRole,
+  }) {
     if (blocks.isEmpty) {
       return [
         Text(
@@ -425,64 +441,17 @@ class EpisodeReaderPage extends StatelessWidget {
 
         case ContentBlockType.ad:
           widgets.add(
-            _ReaderAdWidget(theme: theme),
+            ReaderInlineBannerAd(
+              theme: theme,
+              slotKey: block.id,
+              userRole: userRole,
+            ),
           );
           break;
       }
     }
 
     return widgets;
-  }
-}
-
-class _ReaderAdWidget extends StatelessWidget {
-  final ReaderColorTheme theme;
-  const _ReaderAdWidget({required this.theme});
-
-  @override
-  Widget build(BuildContext context) {
-    final novelId = Get.parameters['novelId'] ?? '';
-    final episodeId = Get.parameters['episodeId'] ?? '';
-    final controller = Get.find<EpisodeReaderController>(
-      tag: '$novelId-$episodeId',
-    );
-
-    if (controller.bannerAd.value == null) {
-      controller.loadReaderAd();
-    }
-
-    return Obx(() {
-      final isLoaded = controller.isAdLoaded.value;
-      final ad = controller.bannerAd.value;
-
-      if (isLoaded && ad != null) {
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
-          alignment: Alignment.center,
-          height: ad.size.height.toDouble(),
-          width: ad.size.width.toDouble(),
-          child: AdWidget(ad: ad),
-        );
-      }
-
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
-        padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
-          color: theme.textColor.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(AppRadii.s),
-          border: Border.all(color: theme.textColor.withValues(alpha: 0.1)),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          'ADVERTISEMENT',
-          style: AppTextStyles.labelSmall.copyWith(
-            color: theme.textColor.withValues(alpha: 0.4),
-            letterSpacing: 1.5,
-          ),
-        ),
-      );
-    });
   }
 }
 

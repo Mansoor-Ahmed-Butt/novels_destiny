@@ -82,7 +82,7 @@ class AppShadows {
 
   static List<BoxShadow> get card => [
         BoxShadow(
-          color: const Color(0xFF2C2018).withOpacity(0.04),
+          color: const Color(0xFF2C2018).withValues(alpha: 0.04),
           blurRadius: 12,
           offset: const Offset(0, 4),
         ),
@@ -90,7 +90,7 @@ class AppShadows {
 
   static List<BoxShadow> get cardHover => [
         BoxShadow(
-          color: const Color(0xFF2C2018).withOpacity(0.08),
+          color: const Color(0xFF2C2018).withValues(alpha: 0.08),
           blurRadius: 18,
           offset: const Offset(0, 6),
         ),
@@ -98,7 +98,7 @@ class AppShadows {
 
   static List<BoxShadow> get floating => [
         BoxShadow(
-          color: const Color(0xFF2C2018).withOpacity(0.12),
+          color: const Color(0xFF2C2018).withValues(alpha: 0.12),
           blurRadius: 24,
           offset: const Offset(0, 8),
         ),
@@ -106,7 +106,7 @@ class AppShadows {
 
   static List<BoxShadow> get subtle => [
         BoxShadow(
-          color: const Color(0xFF2C2018).withOpacity(0.03),
+          color: const Color(0xFF2C2018).withValues(alpha: 0.03),
           blurRadius: 6,
           offset: const Offset(0, 2),
         ),

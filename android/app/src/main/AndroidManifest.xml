@@ -6,7 +6,8 @@
     <application
         android:label="novels_destiny"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <!-- Sample AdMob App ID for development and testing -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

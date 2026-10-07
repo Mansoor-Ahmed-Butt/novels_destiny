@@ -22,8 +22,7 @@ class SupabaseService {
       await dotenv.load(fileName: '.env');
       await Supabase.initialize(
         url: dotenv.get('SUPABASE_URL'),
-        // Use publishableKey as anonKey is deprecated in newer SDK
-        anonKey: dotenv.get('SUPABASE_ANON_KEY'),
+        publishableKey: dotenv.get('SUPABASE_ANON_KEY'),
       );
     } catch (e) {
       debugPrint('Supabase init warning: $e');

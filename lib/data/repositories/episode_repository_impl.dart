@@ -16,18 +16,9 @@ class EpisodeRepositoryImpl implements IEpisodeRepository {
   @override
   Future<List<EpisodeEntity>> getEpisodesForNovel(String novelId, {bool publishedOnly = true}) async {
     try {
-      final local = await _dataSource.getEpisodesForNovel(novelId, publishedOnly: publishedOnly);
-      if (local.isNotEmpty) return local;
-
-      // Try Firestore
       final remote = await _firestore.getEpisodesForNovel(novelId);
-      if (remote.isNotEmpty) {
-        for (final ep in remote) {
-          _dataSource.saveEpisode(ep);
-        }
-        return publishedOnly ? remote.where((e) => e.isPublished).toList() : remote;
-      }
-      return local;
+      _dataSource.loadEpisodes(novelId, remote);
+      return publishedOnly ? remote.where((e) => e.isPublished).toList() : remote;
     } catch (e) {
       throw UnknownFailure('Failed to fetch chapters: $e');
     }
@@ -36,15 +27,12 @@ class EpisodeRepositoryImpl implements IEpisodeRepository {
   @override
   Future<EpisodeEntity?> getEpisodeById(String novelId, String episodeId) async {
     try {
-      final local = await _dataSource.getEpisodeById(novelId, episodeId);
-      if (local != null) return local;
-
       final remote = await _firestore.getEpisode(episodeId);
       if (remote != null) {
-        _dataSource.saveEpisode(remote);
+        await _dataSource.saveEpisode(remote);
         return remote;
       }
-      return null;
+      return _dataSource.getEpisodeById(novelId, episodeId);
     } catch (e) {
       throw UnknownFailure('Failed to fetch chapter: $e');
     }
@@ -104,6 +92,7 @@ class EpisodeRepositoryImpl implements IEpisodeRepository {
   @override
   Future<void> deleteEpisode(String novelId, String episodeId) async {
     try {
+      await _firestore.deleteEpisode(episodeId);
       await _dataSource.deleteEpisode(novelId, episodeId);
     } catch (e) {
       throw UnknownFailure('Failed to delete episode: $e');

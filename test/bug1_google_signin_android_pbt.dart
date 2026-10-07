@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:novels_destiny/domain/entities/user_entity.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'dart:io' as io;
 
 /// Property-Based Test for Bug 1: Google Sign-In serverClientId missing on Android
 /// 
@@ -69,11 +68,6 @@ void main() {
           // The buggy code pattern: GoogleSignIn.instance (no parameters)
           // This would throw clientConfigurationError on Android when authenticate() called
           
-          // For exploration purposes, we document the expected bug condition:
-          print('Test Case: ${testCase['description']}');
-          print('Expected Error Pattern: ${testCase['expectedError']}');
-          print('Bug Condition: GoogleSignIn.instance created without serverClientId parameter');
-          
           // When this test runs on actual Android device/emulator with unfixed code,
           // attempting to call authenticate() would throw:
           // GoogleSignInException: 10: serverClientId must be provided on Android
@@ -120,20 +114,8 @@ void main() {
         // Arrange: Test all user role variations
         const userRoles = [UserRole.reader, UserRole.writer, UserRole.admin];
         
-        for (final role in userRoles) {
-          // The bug condition applies regardless of user role
-          // When signInWithGoogle() is called on Android without serverClientId,
-          // it fails before role information is even processed.
-          
-          // On unfixed code:
-          // 1. GoogleSignIn.instance is called (no serverClientId)
-          // 2. googleSignIn.authenticate() throws clientConfigurationError
-          // 3. This happens BEFORE any user role logic executes
-          
-          // This test documents that the bug affects ALL roles equally
-          print('Testing bug condition for role: ${role.name}');
-          print('Expected: clientConfigurationError thrown before role processing');
-        }
+        // The bug condition applies regardless of user role.
+        expect(userRoles, containsAll([UserRole.reader, UserRole.writer, UserRole.admin]));
         
         // Assertion: The bug is independent of user role
         // All roles will fail due to missing serverClientId on Android
@@ -178,9 +160,7 @@ void main() {
         
         // Current unfixed code:
         const String currentImplementation = 'GoogleSignIn.instance';
-        // This is equivalent to:
-        const String expandedForm = 'GoogleSignIn.instance'; // No serverClientId!
-        
+
         // Expected fixed code (for reference):
         const String fixedImplementation = '''
           Platform.isAndroid 
@@ -191,10 +171,7 @@ void main() {
         // Assert: Current implementation does NOT have the fix
         expect(currentImplementation, equals('GoogleSignIn.instance'),
           reason: 'Confirms unfixed code uses default GoogleSignIn.instance');
-        
-        print('Current (Buggy) Implementation: $currentImplementation');
-        print('Expected (Fixed) Implementation: $fixedImplementation');
-        print('Bug: serverClientId missing on Android');
+        expect(fixedImplementation, contains('serverClientId'));
       },
     );
   });

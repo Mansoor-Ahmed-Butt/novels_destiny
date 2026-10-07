@@ -57,7 +57,7 @@ class AuthRepositoryImpl implements IAuthRepository {
           password: password.trim(),
         );
       } catch (e) {
-        debugPrint('Firebase Auth signIn failed, checking demo credentials: $e');
+        debugPrint('Firebase Auth signIn failed: $e');
       }
 
       if (credential?.user != null) {
@@ -101,19 +101,9 @@ class AuthRepositoryImpl implements IAuthRepository {
         return userDoc;
       }
 
-      // 2. Demo accounts fallback
-      final allUsers = _dataSource.getAllUsers();
-      final user = allUsers.firstWhere(
-        (u) => u.email.toLowerCase() == email.trim().toLowerCase(),
-        orElse: () => throw const NotFoundFailure('Invalid email or password. Please check your credentials.'),
+      throw const NotFoundFailure(
+        'Invalid email or password. Please check your credentials.',
       );
-      if (!user.isActive) {
-        throw const PermissionFailure('This account is suspended. Please contact support.');
-      }
-      _dataSource.setCurrentUser(user);
-      await _sessionService.saveUserSession(user);
-      NotificationService().syncUserDeviceToken(user.id);
-      return user;
     } catch (e) {
       if (e is AppFailure) rethrow;
       throw UnknownFailure('Failed to sign in: $e');
@@ -415,11 +405,7 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<UserEntity> switchRole(UserRole newRole) async {
     final current = _dataSource.currentUser;
     if (current == null) {
-      final allUsers = _dataSource.getAllUsers();
-      final target = allUsers.firstWhere((u) => u.role == newRole);
-      _dataSource.setCurrentUser(target);
-      await _sessionService.saveUserSession(target);
-      return target;
+      throw const UnauthorizedFailure();
     }
 
     final updated = current.copyWith(role: newRole, updatedAt: DateTime.now()) as UserModel;

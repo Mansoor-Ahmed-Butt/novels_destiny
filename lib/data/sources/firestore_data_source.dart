@@ -70,6 +70,19 @@ class FirestoreDataSource {
     }
   }
 
+  Future<void> updateUserApprovalStatus(String uid, String status) async {
+    final col = _usersCol;
+    if (col == null) return;
+    try {
+      await col.doc(uid).update({
+        'approvalStatus': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Firestore updateUserApprovalStatus warning: $e');
+    }
+  }
+
   // ================= NOVELS =================
   Future<void> saveNovel(NovelModel novel) async {
     final col = _novelsCol;
@@ -107,6 +120,46 @@ class FirestoreDataSource {
     }
   }
 
+  Future<List<NovelModel>> getPublishedNovels() async {
+    final col = _novelsCol;
+    if (col == null) return [];
+    try {
+      final snapshot = await col
+          .where('moderationStatus', isEqualTo: 'approved')
+          .get();
+      return snapshot.docs.map((d) => NovelModel.fromJson(d.data())).toList();
+    } catch (e) {
+      debugPrint('Firestore getPublishedNovels warning: $e');
+      return [];
+    }
+  }
+
+  Future<List<NovelModel>> getNovelsByWriter(String writerId) async {
+    final col = _novelsCol;
+    if (col == null) return [];
+    try {
+      final snapshot = await col.where('writerId', isEqualTo: writerId).get();
+      return snapshot.docs.map((d) => NovelModel.fromJson(d.data())).toList();
+    } catch (e) {
+      debugPrint('Firestore getNovelsByWriter warning: $e');
+      return [];
+    }
+  }
+
+  Future<List<NovelModel>> getPendingNovels() async {
+    final col = _novelsCol;
+    if (col == null) return [];
+    try {
+      final snapshot = await col
+          .where('moderationStatus', isEqualTo: 'pending')
+          .get();
+      return snapshot.docs.map((d) => NovelModel.fromJson(d.data())).toList();
+    } catch (e) {
+      debugPrint('Firestore getPendingNovels warning: $e');
+      return [];
+    }
+  }
+
   Future<void> incrementNovelViews(String novelId) async {
     final col = _novelsCol;
     if (col == null) return;
@@ -124,6 +177,29 @@ class FirestoreDataSource {
       await col.doc(novelId).update({'totalLikes': FieldValue.increment(1)});
     } catch (e) {
       debugPrint('Firestore incrementNovelLikes warning: $e');
+    }
+  }
+
+  Future<void> deleteNovel(String id) async {
+    final col = _novelsCol;
+    if (col == null) return;
+    try {
+      await col.doc(id).delete();
+    } catch (e) {
+      debugPrint('Firestore deleteNovel warning: $e');
+    }
+  }
+
+  Future<void> updateNovelModerationStatus(String id, String status) async {
+    final col = _novelsCol;
+    if (col == null) return;
+    try {
+      await col.doc(id).update({
+        'moderationStatus': status,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Firestore updateNovelModerationStatus warning: $e');
     }
   }
 
@@ -173,7 +249,13 @@ class FirestoreDataSource {
 
       final list = <EpisodeModel>[];
       for (final doc in snapshot.docs) {
-        final ep = EpisodeModel.fromJson(doc.data());
+        var ep = EpisodeModel.fromJson(doc.data());
+        if (ep.blocks.isEmpty) {
+          final blocks = await getEpisodeBlocks(doc.id);
+          if (blocks.isNotEmpty) {
+            ep = EpisodeModel.fromEntity(ep.copyWith(blocks: blocks));
+          }
+        }
         list.add(ep);
       }
       list.sort((a, b) => a.episodeNumber.compareTo(b.episodeNumber));
@@ -215,6 +297,16 @@ class FirestoreDataSource {
     }
   }
 
+  Future<void> deleteEpisode(String episodeId) async {
+    final col = _episodesCol;
+    if (col == null) return;
+    try {
+      await col.doc(episodeId).delete();
+    } catch (e) {
+      debugPrint('Firestore deleteEpisode warning: $e');
+    }
+  }
+
   // ================= READING PROGRESS =================
   Future<void> saveReadingProgress({
     required String userId,
@@ -249,6 +341,22 @@ class FirestoreDataSource {
       debugPrint('Firestore getReadingProgress warning: $e');
     }
     return null;
+  }
+
+  Future<List<ReadingProgressModel>> getReadingHistory(String userId) async {
+    final col = _progressCol;
+    if (col == null) return [];
+    try {
+      final snapshot = await col.where('userId', isEqualTo: userId).get();
+      final list = snapshot.docs
+          .map((d) => ReadingProgressModel.fromJson(d.data()))
+          .toList();
+      list.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      return list;
+    } catch (e) {
+      debugPrint('Firestore getReadingHistory warning: $e');
+      return [];
+    }
   }
 
   // ================= BOOKMARKS & LIBRARY =================

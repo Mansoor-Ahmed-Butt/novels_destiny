@@ -52,7 +52,7 @@ class WriterChartView extends StatelessWidget {
                   show: true,
                   drawVerticalLine: false,
                   getDrawingHorizontalLine: (value) => FlLine(
-                    color: AppColors.cardBorder.withOpacity(0.5),
+                    color: AppColors.cardBorder.withValues(alpha: 0.5),
                     strokeWidth: 1,
                   ),
                 ),
@@ -112,8 +112,8 @@ class WriterChartView extends StatelessWidget {
                       show: true,
                       gradient: LinearGradient(
                         colors: [
-                          AppColors.primary.withOpacity(0.18),
-                          AppColors.primary.withOpacity(0.0),
+                          AppColors.primary.withValues(alpha: 0.18),
+                          AppColors.primary.withValues(alpha: 0.0),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,

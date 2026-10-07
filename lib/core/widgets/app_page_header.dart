@@ -58,7 +58,7 @@ class AppPageHeader extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: AppColors.surfaceMuted,
                           borderRadius: BorderRadius.circular(AppRadii.pill),
-                          border: Border.all(color: AppColors.cardBorder.withOpacity(0.6)),
+                          border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.6)),
                         ),
                         child: Text(
                           badgeText!,
@@ -83,7 +83,7 @@ class AppPageHeader extends StatelessWidget {
               ],
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );

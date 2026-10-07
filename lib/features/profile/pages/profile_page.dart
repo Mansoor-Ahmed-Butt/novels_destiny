@@ -121,66 +121,6 @@ class ProfilePage extends GetView<ProfileController> {
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
-                  // Quick Role Switcher (Crucial for seamlessly testing all 3 roles!)
-                  AppCard(
-                    padding: const EdgeInsets.all(AppSpacing.xl),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.swap_horiz_rounded, size: 20, color: AppColors.accent),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Switch User Role (Demo Testing)',
-                              style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Test reader discovering novels, writer drafting chapters, or admin moderating content.',
-                          style: AppTextStyles.bodySmall,
-                        ),
-                        const SizedBox(height: AppSpacing.l),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildRoleCard(
-                                title: 'Reader',
-                                description: 'Discover & read stories',
-                                isSelected: user.role == UserRole.reader,
-                                icon: Icons.auto_stories,
-                                onTap: () => controller.switchRole(UserRole.reader),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.s),
-                            Expanded(
-                              child: _buildRoleCard(
-                                title: 'Writer',
-                                description: 'Draft novels & episodes',
-                                isSelected: user.role == UserRole.writer,
-                                icon: Icons.edit_note,
-                                onTap: () => controller.switchRole(UserRole.writer),
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.s),
-                            Expanded(
-                              child: _buildRoleCard(
-                                title: 'Admin',
-                                description: 'Moderate & see analytics',
-                                isSelected: user.role == UserRole.admin,
-                                icon: Icons.admin_panel_settings,
-                                onTap: () => controller.switchRole(UserRole.admin),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
                   // Sign Out Button
                   Center(
                     child: TextButton.icon(
@@ -201,50 +141,4 @@ class ProfilePage extends GetView<ProfileController> {
     );
   }
 
-  Widget _buildRoleCard({
-    required String title,
-    required String description,
-    required bool isSelected,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadii.m),
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.surfaceMuted : AppColors.card,
-          borderRadius: BorderRadius.circular(AppRadii.m),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.cardBorder,
-            width: isSelected ? 1.5 : 1.0,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppColors.primary : AppColors.textTertiary,
-              size: 24,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              style: AppTextStyles.labelMedium.copyWith(
-                fontWeight: FontWeight.w700,
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              description,
-              textAlign: TextAlign.center,
-              style: AppTextStyles.labelSmall.copyWith(fontSize: 10, color: AppColors.textTertiary),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

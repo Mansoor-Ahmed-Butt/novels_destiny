@@ -14,6 +14,7 @@ import '../views/genre_filter_section.dart';
 import '../views/trending_novels_section.dart';
 import '../views/home_carousel_slider.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../../core/widgets/adaptive_banner_slot.dart';
 
 class HomePage extends GetView<HomeController> {
   const HomePage({super.key});
@@ -147,6 +148,10 @@ class HomePage extends GetView<HomeController> {
                         novels: controller.trendingNovels,
                         onNovelTap: controller.openNovel,
                       ),
+                      AdaptiveBannerSlot(
+                        placementKey: 'home_footer',
+                        userRole: user?.role,
+                      ),
                       const SizedBox(height: AppSpacing.xxxl),
                     ],
                   ],
@@ -184,7 +189,7 @@ class HomePage extends GetView<HomeController> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: results.length,
-          separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) {
             final novel = results[index];
             return NovelCard(

@@ -20,7 +20,7 @@ class GenreFilterSection extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: genres.length,
-        separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.s),
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s),
         itemBuilder: (context, index) {
           final genre = genres[index];
           final isSelected = genre == selectedGenre;

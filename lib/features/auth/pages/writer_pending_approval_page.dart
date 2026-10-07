@@ -233,33 +233,6 @@ class WriterPendingApprovalPage extends StatelessWidget {
                     ),
                   const SizedBox(height: AppSpacing.m),
 
-                  // Simulation Button for Testing
-                  if (!isApproved) ...[
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        if (user != null) {
-                          authController.simulateAdminApproval(user.id);
-                        }
-                      },
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadii.m),
-                        ),
-                        side: const BorderSide(color: AppColors.accent, width: 1.2),
-                      ),
-                      icon: const Icon(Icons.bolt_rounded, color: AppColors.accent, size: 18),
-                      label: Text(
-                        'Demo Testing: Instant Admin Approve',
-                        style: AppTextStyles.labelMedium.copyWith(
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                  ],
-
                   // Sign Out Button
                   Center(
                     child: TextButton.icon(

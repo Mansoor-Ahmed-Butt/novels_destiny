@@ -1,7 +1,12 @@
+import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
+import '../../domain/entities/user_entity.dart';
+import '../constants/ad_constants.dart';
 
 class AdService {
   static final AdService _instance = AdService._internal();
@@ -14,25 +19,54 @@ class AdService {
   InterstitialAd? _interstitialAd;
   bool _isInterstitialLoading = false;
 
-  // Official Google AdMob Test Ad Unit IDs
-  static String get bannerAdUnitId {
-    if (kIsWeb) return '';
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/6300978111';
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/2934735716';
-    }
-    return '';
+  DateTime? _lastInterstitialShownAt;
+  String? _lastInterstitialEpisodeId;
+
+  bool get _adsEnabledFromEnv {
+    if (!dotenv.isInitialized) return true;
+    final flag = dotenv.env[AdConstants.envAdsEnabled]?.trim().toLowerCase();
+    if (flag == null || flag.isEmpty) return true;
+    return flag != 'false' && flag != '0' && flag != 'off';
   }
 
-  static String get interstitialAdUnitId {
+  static String get bannerAdUnitId => _resolveUnitId(
+        androidEnvKey: AdConstants.envAndroidBanner,
+        iosEnvKey: AdConstants.envIosBanner,
+        testAndroid: AdConstants.testAndroidBanner,
+        testIos: AdConstants.testIosBanner,
+      );
+
+  static String get interstitialAdUnitId => _resolveUnitId(
+        androidEnvKey: AdConstants.envAndroidInterstitial,
+        iosEnvKey: AdConstants.envIosInterstitial,
+        testAndroid: AdConstants.testAndroidInterstitial,
+        testIos: AdConstants.testIosInterstitial,
+      );
+
+  static String _resolveUnitId({
+    required String androidEnvKey,
+    required String iosEnvKey,
+    required String testAndroid,
+    required String testIos,
+  }) {
     if (kIsWeb) return '';
-    if (Platform.isAndroid) {
-      return 'ca-app-pub-3940256099942544/1033173712';
-    } else if (Platform.isIOS) {
-      return 'ca-app-pub-3940256099942544/4411468910';
+    if (kDebugMode) {
+      return Platform.isAndroid ? testAndroid : testIos;
     }
-    return '';
+    if (dotenv.isInitialized) {
+      final fromEnv = Platform.isAndroid
+          ? dotenv.env[androidEnvKey]?.trim()
+          : dotenv.env[iosEnvKey]?.trim();
+      if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+    }
+    return Platform.isAndroid ? testAndroid : testIos;
+  }
+
+  /// Readers and guests see ads; admins do not (moderation / QA without noise).
+  bool shouldShowAdsFor({UserRole? role}) {
+    if (!_isInitialized || !_adsEnabledFromEnv) return false;
+    if (role == UserRole.admin) return false;
+    return true;
   }
 
   Future<void> init() async {
@@ -51,13 +85,12 @@ class AdService {
     }
   }
 
-  /// Creates a BannerAd instance ready for listener and loading
   BannerAd? createBannerAd({
     required Function() onAdLoaded,
     required Function(LoadAdError) onAdFailedToLoad,
     AdSize size = AdSize.banner,
   }) {
-    if (!_isInitialized) return null;
+    if (!_isInitialized || bannerAdUnitId.isEmpty) return null;
 
     return BannerAd(
       adUnitId: bannerAdUnitId,
@@ -77,9 +110,12 @@ class AdService {
     );
   }
 
-  /// Preloads an interstitial ad for smooth display
   void preloadInterstitial() {
-    if (!_isInitialized || _isInterstitialLoading || _interstitialAd != null) {
+    if (!_isInitialized ||
+        !_adsEnabledFromEnv ||
+        _isInterstitialLoading ||
+        _interstitialAd != null ||
+        interstitialAdUnitId.isEmpty) {
       return;
     }
 
@@ -93,7 +129,8 @@ class AdService {
           _isInterstitialLoading = false;
           debugPrint('AdService: Interstitial preloaded.');
 
-          _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+          _interstitialAd!.fullScreenContentCallback =
+              FullScreenContentCallback(
             onAdDismissedFullScreenContent: (ad) {
               ad.dispose();
               _interstitialAd = null;
@@ -116,7 +153,34 @@ class AdService {
     );
   }
 
-  /// Shows the preloaded interstitial ad if available, then executes onDismiss
+  /// Interstitial when entering a chapter — capped for policy-friendly frequency.
+  Future<void> showInterstitialForEpisode(
+    String episodeId, {
+    UserRole? role,
+  }) async {
+    if (!shouldShowAdsFor(role: role)) return;
+    if (_lastInterstitialEpisodeId == episodeId) return;
+
+    final now = DateTime.now();
+    if (_lastInterstitialShownAt != null &&
+        now.difference(_lastInterstitialShownAt!) <
+            AdConstants.interstitialCooldown) {
+      return;
+    }
+
+    _lastInterstitialEpisodeId = episodeId;
+    _lastInterstitialShownAt = now;
+    await showInterstitialAsync();
+  }
+
+  Future<void> showInterstitialAsync() {
+    final completer = Completer<void>();
+    showInterstitial(onDismiss: () {
+      if (!completer.isCompleted) completer.complete();
+    });
+    return completer.future;
+  }
+
   void showInterstitial({required VoidCallback onDismiss}) {
     if (_interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
@@ -135,7 +199,6 @@ class AdService {
       );
       _interstitialAd!.show();
     } else {
-      // If ad isn't loaded, don't block the user; proceed immediately
       onDismiss();
       preloadInterstitial();
     }

@@ -119,9 +119,13 @@ class AppSecondaryButton extends StatelessWidget {
             Icon(icon, size: 18, color: AppColors.textPrimary),
             const SizedBox(width: AppSpacing.s),
           ],
-          Text(
-            label,
-            style: AppTextStyles.labelLarge,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: AppTextStyles.labelLarge,
+            ),
           ),
         ],
       ),
@@ -163,7 +167,7 @@ class AppIconButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor ?? AppColors.surface,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.cardBorder.withOpacity(0.6)),
+          border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.6)),
         ),
         child: Center(
           child: Icon(
@@ -205,7 +209,7 @@ class AppPillBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadii.pill),
-        border: Border.all(color: AppColors.cardBorder.withOpacity(0.5)),
+        border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

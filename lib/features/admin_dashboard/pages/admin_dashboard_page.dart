@@ -143,60 +143,109 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: pending.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
       itemBuilder: (context, index) {
         final novel = pending[index];
         return AppCard(
-          padding: const EdgeInsets.all(AppSpacing.l),
-          child: Row(
-            children: [
-              NovelCover(url: novel.coverUrl, title: novel.title, width: 64, height: 90),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                child: Column(
+          padding: const EdgeInsets.all(AppSpacing.m),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompact = constraints.maxWidth < 600;
+              final novelInfo = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  NovelCover(url: novel.coverUrl, title: novel.title, width: 64, height: 90),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                novel.title,
+                                style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.s),
+                            AppStatusChip.moderationStatus(novel.moderationStatus),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text('By ${novel.writerName}', style: AppTextStyles.bodySmall),
+                        const SizedBox(height: 4),
+                        Text(
+                          novel.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              if (isCompact) {
+                return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    novelInfo,
+                    const SizedBox(height: AppSpacing.m),
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            novel.title,
-                            style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                          child: AppPrimaryButton(
+                            label: 'Approve',
+                            icon: Icons.check_rounded,
+                            backgroundColor: AppColors.success,
+                            isExpanded: true,
+                            onPressed: () => controller.approveNovel(novel),
                           ),
                         ),
-                        AppStatusChip.moderationStatus(novel.moderationStatus),
+                        const SizedBox(width: AppSpacing.s),
+                        Expanded(
+                          child: AppSecondaryButton(
+                            label: 'Reject',
+                            icon: Icons.close_rounded,
+                            isExpanded: true,
+                            onPressed: () => controller.rejectNovel(novel),
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text('By ${novel.writerName}', style: AppTextStyles.bodySmall),
-                    const SizedBox(height: 4),
-                    Text(
-                      novel.description,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
-                    ),
                   ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.m),
-              Column(
+                );
+              }
+
+              return Row(
                 children: [
-                  AppPrimaryButton(
-                    label: 'Approve',
-                    icon: Icons.check_rounded,
-                    backgroundColor: AppColors.success,
-                    onPressed: () => controller.approveNovel(novel),
-                  ),
-                  const SizedBox(height: AppSpacing.s),
-                  AppSecondaryButton(
-                    label: 'Reject',
-                    icon: Icons.close_rounded,
-                    onPressed: () => controller.rejectNovel(novel),
+                  Expanded(child: novelInfo),
+                  const SizedBox(width: AppSpacing.m),
+                  Column(
+                    children: [
+                      AppPrimaryButton(
+                        label: 'Approve',
+                        icon: Icons.check_rounded,
+                        backgroundColor: AppColors.success,
+                        onPressed: () => controller.approveNovel(novel),
+                      ),
+                      const SizedBox(height: AppSpacing.s),
+                      AppSecondaryButton(
+                        label: 'Reject',
+                        icon: Icons.close_rounded,
+                        onPressed: () => controller.rejectNovel(novel),
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ],
+              );
+            },
           ),
         );
       },
@@ -217,7 +266,7 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: reports.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
       itemBuilder: (context, index) {
         final rep = reports[index];
         final isPending = rep.status == ReportStatus.pending;
@@ -292,7 +341,7 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: userList.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
       itemBuilder: (context, index) {
         final u = userList[index];
         return AppCard(
@@ -361,7 +410,7 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: controller.pendingWriters.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
       itemBuilder: (context, index) {
         final writer = controller.pendingWriters[index];
         return AppCard(

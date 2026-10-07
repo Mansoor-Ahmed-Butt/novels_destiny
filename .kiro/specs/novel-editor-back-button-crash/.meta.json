@@ -1,0 +1,9 @@
+{
+  "version": "1.0",
+  "name": "novel-editor-back-button-crash",
+  "displayName": "Fix Novel Editor Back Button Crash",
+  "description": "Fix race condition that causes app crash when navigating back from novel editor screen",
+  "type": "bugfix",
+  "status": "active",
+  "createdAt": "2025-01-13T00:00:00Z"
+}

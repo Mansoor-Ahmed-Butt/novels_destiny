@@ -45,6 +45,11 @@ dependencies:
   cloud_firestore: ^6.9.0
   firebase_messaging: ^16.6.0
   google_sign_in: ^7.2.0
+
+    #Utils
+  flutter_native_splash: ^2.4.6
+  flutter_launcher_icons: ^0.14.4
+  
   #supabase for data storage
   supabase_flutter: ^2.17.2
   image_picker: ^1.2.3
@@ -77,8 +82,39 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/imgs/
+    - assets/icon/
     - .env
 
+ 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "assets/icon/app_icon_background.png"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  remove_alpha_ios: true
+ 
+
+flutter_native_splash:
+  color: "#F8F4EC"
+  image: "assets/icon/splash_icon.png"
+  branding: "assets/icon/splash_branding.png"
+  branding_mode: bottom
+  color_dark: "#1E1A17"
+  image_dark: "assets/icon/splash_icon_dark.png"
+  branding_dark: "assets/icon/splash_branding_dark.png"
+ 
+  android_12:
+    image: "assets/icon/splash_icon.png"
+    icon_background_color: "#F8F4EC"
+    branding: "assets/icon/splash_branding.png"
+    image_dark: "assets/icon/splash_icon_dark.png"
+    icon_background_color_dark: "#1E1A17"
+    branding_dark: "assets/icon/splash_branding_dark.png"
+ 
+  web: false
+ 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

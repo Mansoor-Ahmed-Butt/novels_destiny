@@ -18,10 +18,8 @@ class SplashController extends GetxController {
     await Future.delayed(const Duration(milliseconds: 400));
 
     // Check existing or persisted user session
-    UserEntity? user = _authController.currentUser.value;
-    if (user == null) {
-      user = await _authController.restoreSession();
-    }
+    final user =
+        _authController.currentUser.value ?? await _authController.restoreSession();
 
     if (user != null) {
       // User is already logged in, navigate straight into the app!

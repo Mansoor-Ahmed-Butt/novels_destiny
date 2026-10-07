@@ -6,12 +6,10 @@ import '../../../core/widgets/app_page_header.dart';
 import '../../../core/widgets/app_states.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/stat_card.dart';
-import '../../../core/widgets/novel_cover.dart';
-import '../../../core/widgets/app_status_chip.dart';
-import '../../../core/widgets/app_card.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../controllers/writer_dashboard_controller.dart';
 import '../widgets/writer_chart_view.dart';
+import '../widgets/writer_novel_card.dart';
 
 class WriterDashboardPage extends GetView<WriterDashboardController> {
   const WriterDashboardPage({super.key});
@@ -98,71 +96,14 @@ class WriterDashboardPage extends GetView<WriterDashboardController> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: controller.myNovels.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+                        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
                         itemBuilder: (context, index) {
                           final novel = controller.myNovels[index];
-                          return AppCard(
-                            padding: const EdgeInsets.all(AppSpacing.l),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                NovelCover(
-                                  url: novel.coverUrl,
-                                  title: novel.title,
-                                  width: 60,
-                                  height: 85,
-                                ),
-                                const SizedBox(width: AppSpacing.m),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              novel.title,
-                                              style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                          AppStatusChip.novelStatus(novel.status),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${novel.publishedEpisodeCount} Episodes • ${novel.totalViews} Reads • ${novel.totalLikes} Likes',
-                                        style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: AppSpacing.m),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    AppSecondaryButton(
-                                      label: '+ Episode',
-                                      icon: Icons.add_rounded,
-                                      onPressed: () => controller.createEpisode(novel),
-                                    ),
-                                    const SizedBox(width: AppSpacing.s),
-                                    AppIconButton(
-                                      icon: Icons.edit_outlined,
-                                      tooltip: 'Edit Story Details',
-                                      onPressed: () => controller.editNovel(novel),
-                                    ),
-                                    const SizedBox(width: AppSpacing.xs),
-                                    AppIconButton(
-                                      icon: Icons.visibility_outlined,
-                                      tooltip: 'View as Reader',
-                                      onPressed: () => controller.viewNovel(novel),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                          return WriterNovelCard(
+                            novel: novel,
+                            onAddEpisode: () => controller.createEpisode(novel),
+                            onEdit: () => controller.editNovel(novel),
+                            onView: () => controller.viewNovel(novel),
                           );
                         },
                       ),

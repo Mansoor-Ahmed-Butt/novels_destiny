@@ -8,6 +8,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_states.dart';
+import '../../../core/widgets/app_confirm_dialog.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../controllers/novel_editor_controller.dart';
 
@@ -21,6 +22,7 @@ class NovelEditorPage extends StatefulWidget {
 class _NovelEditorPageState extends State<NovelEditorPage> {
   late final NovelEditorController _ctrl;
   late final String _tag;
+  bool _isNavigatingBack = false;
 
   @override
   void initState() {
@@ -30,12 +32,31 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
     _ctrl = Get.find<NovelEditorController>(tag: _tag);
   }
 
-  /// Navigate back and clean up the tagged controller so it is created fresh
-  /// the next time the user opens "New Novel" or "Edit Novel".
   void _onBack() {
     FocusScope.of(context).unfocus();
+    if (_isNavigatingBack) return;
+    if (_ctrl.hasUnsavedChanges.value) {
+      AppConfirmDialog.show(
+        context: context,
+        title: 'Unsaved Changes',
+        message: 'Do you want to discard unsaved novel changes?',
+        confirmLabel: 'Discard',
+        isDestructive: true,
+        onConfirm: _navigateBack,
+      );
+    } else {
+      _navigateBack();
+    }
+  }
+
+  void _navigateBack() {
+    if (_isNavigatingBack) return;
+    _isNavigatingBack = true;
+    FocusScope.of(context).unfocus();
+
     Get.back();
-    Future.microtask(() {
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (Get.isRegistered<NovelEditorController>(tag: _tag)) {
         Get.delete<NovelEditorController>(tag: _tag, force: true);
       }
@@ -44,24 +65,33 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      // Intercept Android hardware back button
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _onBack();
-      },
-      child: AppScaffold(
-        body: Obx(() {
-          // Only the loading gate lives in the outer Obx.
-          // Once loaded, the static form is rendered outside any Obx so
-          // TextEditingController fields are never rebuilt on reactive changes.
-          if (_ctrl.isLoading.value) {
-            return const AppLoadingState(message: 'Loading story details...');
-          }
-          return _buildForm();
-        }),
-      ),
-    );
+    return Obx(() => PopScope(
+          canPop: !_ctrl.hasUnsavedChanges.value && !_isNavigatingBack,
+          onPopInvokedWithResult: (didPop, _) async {
+            if (didPop) return;
+            if (_isNavigatingBack) return;
+            if (_ctrl.hasUnsavedChanges.value) {
+              await AppConfirmDialog.show(
+                context: context,
+                title: 'Unsaved Novel Changes',
+                message: 'You have unsaved changes. Exit without saving?',
+                confirmLabel: 'Discard Changes',
+                isDestructive: true,
+                onConfirm: _navigateBack,
+              );
+            } else {
+              _navigateBack();
+            }
+          },
+          child: AppScaffold(
+            body: Obx(() {
+              if (_ctrl.isLoading.value) {
+                return const AppLoadingState(message: 'Loading story details...');
+              }
+              return _buildForm();
+            }),
+          ),
+        ));
   }
 
   Widget _buildForm() {
@@ -284,25 +314,28 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Novel Illustrations & Gallery',
-                              style: AppTextStyles.titleMedium
-                                  .copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Add 1 to 5 illustrations, character artwork, or maps',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textTertiary,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Novel Illustrations & Gallery',
+                                style: AppTextStyles.titleMedium
+                                    .copyWith(fontWeight: FontWeight.w700),
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 2),
+                              Text(
+                                'Add 1 to 5 illustrations, character artwork, or maps',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textTertiary,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: AppSpacing.s),
                         Obx(
                           () => Container(
                             padding: const EdgeInsets.symmetric(

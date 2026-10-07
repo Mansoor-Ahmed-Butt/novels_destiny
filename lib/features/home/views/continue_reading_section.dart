@@ -49,7 +49,7 @@ class ContinueReadingSection extends StatelessWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: history.length,
-            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.m),
+            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.m),
             itemBuilder: (context, index) {
               final progress = history[index];
               final novel = novelMap[progress.novelId];

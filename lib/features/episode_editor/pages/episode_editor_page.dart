@@ -12,34 +12,66 @@ import '../../../core/responsive/breakpoints.dart';
 import '../controllers/episode_editor_controller.dart';
 import '../../../domain/entities/content_block_entity.dart';
 
-class EpisodeEditorPage extends StatelessWidget {
+class EpisodeEditorPage extends StatefulWidget {
   const EpisodeEditorPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<EpisodeEditorPage> createState() => _EpisodeEditorPageState();
+}
+
+class _EpisodeEditorPageState extends State<EpisodeEditorPage> {
+  late final EpisodeEditorController _ctrl;
+  late final String _tag;
+  bool _isNavigatingBack = false;
+
+  @override
+  void initState() {
+    super.initState();
     final novelId = Get.parameters['novelId'] ?? '';
     final episodeId = Get.parameters['episodeId'];
-    final ctrl = Get.find<EpisodeEditorController>(
-      tag: '$novelId-${episodeId ?? "__new__"}',
-    );
+    _tag = '$novelId-${episodeId ?? "__new__"}';
+    _ctrl = Get.find<EpisodeEditorController>(tag: _tag);
+  }
 
-    return PopScope(
-      canPop: !ctrl.hasUnsavedChanges.value,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        await AppConfirmDialog.show(
-          context: context,
-          title: 'Unsaved Manuscript Changes',
-          message:
-              'You have unsaved changes in this episode. Are you sure you want to exit without saving?',
-          confirmLabel: 'Discard Changes',
-          isDestructive: true,
-          onConfirm: () => Get.back(),
-        );
-      },
-      child: AppScaffold(
-        body: Obx(() {
-          return SingleChildScrollView(
+  void _onBack() {
+    FocusScope.of(context).unfocus();
+    if (_isNavigatingBack) return;
+    if (_ctrl.hasUnsavedChanges.value) {
+      AppConfirmDialog.show(context: context, title: 'Unsaved Changes', message: 'Do you want to discard unsaved manuscript changes?', confirmLabel: 'Discard', isDestructive: true, onConfirm: _navigateBack);
+    } else {
+      _navigateBack();
+    }
+  }
+
+  void _navigateBack() {
+    if (_isNavigatingBack) return;
+    _isNavigatingBack = true;
+    FocusScope.of(context).unfocus();
+
+    Get.back();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isRegistered<EpisodeEditorController>(tag: _tag)) {
+        Get.delete<EpisodeEditorController>(tag: _tag, force: true);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(
+      () => PopScope(
+        canPop: !_ctrl.hasUnsavedChanges.value && !_isNavigatingBack,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          if (_isNavigatingBack) return;
+          if (_ctrl.hasUnsavedChanges.value) {
+            await AppConfirmDialog.show(context: context, title: 'Unsaved Manuscript Changes', message: 'You have unsaved changes. Exit without saving?', confirmLabel: 'Discard Changes', isDestructive: true, onConfirm: _navigateBack);
+          } else {
+            _navigateBack();
+          }
+        },
+        child: AppScaffold(
+          body: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.l),
             child: Center(
               child: ConstrainedBox(
@@ -47,39 +79,22 @@ class EpisodeEditorPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    AppPageHeader(
-                      title: 'Episode Editor',
-                      subtitle: 'Draft and publish story chapters with live word count',
-                      onBack: () {
-                        if (ctrl.hasUnsavedChanges.value) {
-                          AppConfirmDialog.show(
-                            context: context,
-                            title: 'Unsaved Changes',
-                            message:
-                                'Do you want to discard unsaved manuscript changes?',
-                            confirmLabel: 'Discard',
-                            isDestructive: true,
-                            onConfirm: () => Get.back(),
-                          );
-                        } else {
-                          Get.back();
-                        }
-                      },
-                      trailing: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceMuted,
-                          borderRadius: BorderRadius.circular(AppRadii.pill),
-                          border: Border.all(color: AppColors.cardBorder),
-                        ),
-                        child: Text(
-                          '${ctrl.wordCount.value} Words',
-                          style: AppTextStyles.labelSmall.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w700,
+                    // ── Header (reactive word count only) ──────────────
+                    Obx(
+                      () => AppPageHeader(
+                        title: 'Episode Editor',
+                        subtitle: 'Draft and publish story chapters with live word count',
+                        onBack: _onBack,
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceMuted,
+                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: Text(
+                            '${_ctrl.wordCount.value} Words',
+                            style: AppTextStyles.labelSmall.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -90,37 +105,25 @@ class EpisodeEditorPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // ── Chapter meta (static TextFields) ──────────
                           Row(
                             children: [
                               SizedBox(
                                 width: 90,
-                                child: AppTextField(
-                                  label: 'Chapter #',
-                                  hint: '1',
-                                  controller: ctrl.numberController,
-                                  keyboardType: TextInputType.number,
-                                ),
+                                child: AppTextField(label: 'Chapter #', hint: '1', controller: _ctrl.numberController, keyboardType: TextInputType.number),
                               ),
                               const SizedBox(width: AppSpacing.m),
                               Expanded(
-                                child: AppTextField(
-                                  label: 'Chapter Title',
-                                  hint: 'e.g. The Awakening of the Starlight Core',
-                                  controller: ctrl.titleController,
-                                ),
+                                child: AppTextField(label: 'Chapter Title', hint: 'e.g. The Awakening of the Starlight Core', controller: _ctrl.titleController),
                               ),
                             ],
                           ),
                           const SizedBox(height: AppSpacing.m),
 
-                          AppTextField(
-                            label: 'Chapter Teaser / Summary (Optional)',
-                            hint: 'A quick summary of key events for this chapter...',
-                            controller: ctrl.summaryController,
-                            maxLines: 2,
-                          ),
+                          AppTextField(label: 'Chapter Teaser / Summary (Optional)', hint: 'A quick summary of key events for this chapter...', controller: _ctrl.summaryController, maxLines: 2),
                           const SizedBox(height: AppSpacing.l),
 
+                          // ── Manuscript text area (static) ──────────────
                           Text('Manuscript Prose', style: AppTextStyles.labelLarge),
                           const SizedBox(height: AppSpacing.xs),
                           Container(
@@ -130,18 +133,12 @@ class EpisodeEditorPage extends StatelessWidget {
                               border: Border.all(color: AppColors.cardBorder),
                             ),
                             child: TextField(
-                              controller: ctrl.contentController,
+                              controller: _ctrl.contentController,
                               maxLines: 18,
-                              style: GoogleFonts.merriweather(
-                                fontSize: 16,
-                                height: 1.7,
-                                color: AppColors.textPrimary,
-                              ),
+                              style: GoogleFonts.merriweather(fontSize: 16, height: 1.7, color: AppColors.textPrimary),
                               decoration: InputDecoration(
                                 hintText: 'Begin typing your story here...',
-                                hintStyle: AppTextStyles.bodyMedium.copyWith(
-                                  color: AppColors.textTertiary,
-                                ),
+                                hintStyle: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.all(AppSpacing.l),
                               ),
@@ -149,60 +146,50 @@ class EpisodeEditorPage extends StatelessWidget {
                           ),
                           const SizedBox(height: AppSpacing.xl),
 
-                          // Content Blocks Section (Images, PDFs, Ads)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Ordered Content Blocks', style: AppTextStyles.labelLarge),
-                                  Text('Attach chapter images, PDF files, or inline ads', style: AppTextStyles.bodySmall),
-                                ],
-                              ),
-                              if (ctrl.isUploadingMedia.value)
-                                const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                          // ── Content Blocks header (reactive upload state)
+                          Obx(
+                            () => Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Ordered Content Blocks', style: AppTextStyles.labelLarge),
+                                    Text('Attach chapter images, PDF files, or inline ads', style: AppTextStyles.bodySmall),
+                                  ],
                                 ),
-                            ],
+                                if (_ctrl.isUploadingMedia.value) const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: AppSpacing.m),
 
-                          // Block Insertion Actions
-                          Wrap(
-                            spacing: AppSpacing.s,
-                            runSpacing: AppSpacing.s,
-                            children: [
-                              OutlinedButton.icon(
-                                onPressed: ctrl.isUploadingMedia.value ? null : ctrl.pickAndAddImage,
-                                icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                                label: const Text('Add Image'),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: ctrl.isUploadingMedia.value ? null : ctrl.pickAndAddPdf,
-                                icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                                label: const Text('Add PDF'),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: ctrl.addAdBlock,
-                                icon: const Icon(Icons.ad_units_outlined, size: 18),
-                                label: const Text('Add Ad Placement'),
-                              ),
-                            ],
+                          // ── Block insertion buttons (reactive) ─────────
+                          Obx(
+                            () => Wrap(
+                              spacing: AppSpacing.s,
+                              runSpacing: AppSpacing.s,
+                              children: [
+                                OutlinedButton.icon(onPressed: _ctrl.isUploadingMedia.value ? null : _ctrl.pickAndAddImage, icon: const Icon(Icons.add_photo_alternate_outlined, size: 18), label: const Text('Add Image')),
+                                OutlinedButton.icon(onPressed: _ctrl.isUploadingMedia.value ? null : _ctrl.pickAndAddPdf, icon: const Icon(Icons.picture_as_pdf_outlined, size: 18), label: const Text('Add PDF')),
+                                OutlinedButton.icon(onPressed: _ctrl.addAdBlock, icon: const Icon(Icons.ad_units_outlined, size: 18), label: const Text('Add Ad Placement')),
+                              ],
+                            ),
                           ),
                           const SizedBox(height: AppSpacing.m),
 
-                          // Existing Blocks List
-                          if (ctrl.blocks.isNotEmpty)
-                            ReorderableListView.builder(
+                          // ── Reorderable block list (reactive) ──────────
+                          Obx(() {
+                            if (_ctrl.blocks.isEmpty) {
+                              return const SizedBox.shrink();
+                            }
+                            return ReorderableListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              itemCount: ctrl.blocks.length,
-                              onReorder: ctrl.reorderBlocks,
+                              itemCount: _ctrl.blocks.length,
+                              onReorderItem: (oldIndex, newIndex) => _ctrl.reorderBlocks(oldIndex, newIndex),
                               itemBuilder: (context, index) {
-                                final block = ctrl.blocks[index];
+                                final block = _ctrl.blocks[index];
                                 return Container(
                                   key: ValueKey(block.id),
                                   margin: const EdgeInsets.only(bottom: AppSpacing.s),
@@ -218,10 +205,10 @@ class EpisodeEditorPage extends StatelessWidget {
                                         block.type == ContentBlockType.image
                                             ? Icons.image_rounded
                                             : block.type == ContentBlockType.pdf
-                                                ? Icons.picture_as_pdf_rounded
-                                                : block.type == ContentBlockType.ad
-                                                    ? Icons.ad_units_rounded
-                                                    : Icons.text_snippet_rounded,
+                                            ? Icons.picture_as_pdf_rounded
+                                            : block.type == ContentBlockType.ad
+                                            ? Icons.ad_units_rounded
+                                            : Icons.text_snippet_rounded,
                                         size: 20,
                                         color: AppColors.primary,
                                       ),
@@ -231,10 +218,10 @@ class EpisodeEditorPage extends StatelessWidget {
                                           block.type == ContentBlockType.image
                                               ? 'Image: ${block.caption ?? "Episode Image"}'
                                               : block.type == ContentBlockType.pdf
-                                                  ? 'PDF: ${block.fileName ?? "Episode Document"}'
-                                                  : block.type == ContentBlockType.ad
-                                                      ? 'AdMob Placement (inline)'
-                                                      : 'Text Paragraph',
+                                              ? 'PDF: ${block.fileName ?? "Episode Document"}'
+                                              : block.type == ContentBlockType.ad
+                                              ? 'AdMob Placement (inline)'
+                                              : 'Text Paragraph',
                                           style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
@@ -242,38 +229,30 @@ class EpisodeEditorPage extends StatelessWidget {
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.error),
-                                        onPressed: () => ctrl.removeBlock(index),
+                                        onPressed: () => _ctrl.removeBlock(index),
                                       ),
                                       const Icon(Icons.drag_handle_rounded, size: 20, color: AppColors.textTertiary),
                                     ],
                                   ),
                                 );
                               },
-                            ),
+                            );
+                          }),
                           const SizedBox(height: AppSpacing.xl),
 
-                          // Publish vs Draft Actions
-                          Row(
-                            children: [
-                              Expanded(
-                                child: AppSecondaryButton(
-                                  label: 'Save Draft',
-                                  icon: Icons.save_outlined,
-                                  onPressed: () =>
-                                      ctrl.saveEpisode(publishImmediately: false),
+                          // ── Save / Publish buttons (reactive loading) ──
+                          Obx(
+                            () => Row(
+                              children: [
+                                Expanded(
+                                  child: AppSecondaryButton(label: 'Save Draft', icon: Icons.save_outlined, onPressed: () => _ctrl.saveEpisode(publishImmediately: false)),
                                 ),
-                              ),
-                              const SizedBox(width: AppSpacing.m),
-                              Expanded(
-                                child: AppPrimaryButton(
-                                  label: 'Publish Episode',
-                                  icon: Icons.send_rounded,
-                                  isLoading: ctrl.isSaving.value,
-                                  onPressed: () =>
-                                      ctrl.saveEpisode(publishImmediately: true),
+                                const SizedBox(width: AppSpacing.m),
+                                Expanded(
+                                  child: AppPrimaryButton(label: 'Publish Episode', icon: Icons.send_rounded, isLoading: _ctrl.isSaving.value, onPressed: () => _ctrl.saveEpisode(publishImmediately: true)),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -282,8 +261,8 @@ class EpisodeEditorPage extends StatelessWidget {
                 ),
               ),
             ),
-          );
-        }),
+          ),
+        ),
       ),
     );
   }

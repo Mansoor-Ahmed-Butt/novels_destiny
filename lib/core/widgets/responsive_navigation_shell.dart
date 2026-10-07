@@ -120,7 +120,7 @@ class ResponsiveNavigationShell extends StatelessWidget {
                   Expanded(
                     child: ListView.separated(
                       itemCount: navItems.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.s),
+                      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s),
                       itemBuilder: (context, index) {
                         final item = navItems[index];
                         final isSelected = index == currentIndex;
@@ -190,7 +190,7 @@ class ResponsiveNavigationShell extends StatelessWidget {
                     Expanded(
                       child: ListView.separated(
                         itemCount: navItems.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs),
+                        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.xs),
                         itemBuilder: (context, index) {
                           final item = navItems[index];
                           final isSelected = index == currentIndex;
@@ -206,7 +206,7 @@ class ResponsiveNavigationShell extends StatelessWidget {
                                 color: isSelected ? AppColors.surfaceMuted : Colors.transparent,
                                 borderRadius: BorderRadius.circular(AppRadii.pill),
                                 border: isSelected
-                                    ? Border.all(color: AppColors.cardBorder.withOpacity(0.8))
+                                    ? Border.all(color: AppColors.cardBorder.withValues(alpha: 0.8))
                                     : null,
                               ),
                               child: Row(
@@ -319,7 +319,7 @@ class ResponsiveNavigationShell extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceMuted,
           borderRadius: BorderRadius.circular(AppRadii.card),
-          border: Border.all(color: AppColors.cardBorder.withOpacity(0.8)),
+          border: Border.all(color: AppColors.cardBorder.withValues(alpha: 0.8)),
         ),
         child: Row(
           children: [

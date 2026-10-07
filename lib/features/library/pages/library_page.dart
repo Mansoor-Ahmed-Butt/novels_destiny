@@ -138,7 +138,7 @@ class LibraryPage extends GetView<LibraryController> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: history.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
       itemBuilder: (context, index) {
         final prog = history[index];
         final novel = controller.historyNovelMap[prog.novelId];
@@ -168,7 +168,7 @@ class LibraryPage extends GetView<LibraryController> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: downloads.length,
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.m),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
       itemBuilder: (context, index) {
         final novel = downloads[index];
         return NovelCard(

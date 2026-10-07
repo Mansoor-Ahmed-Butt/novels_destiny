@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:get/get.dart';
 import 'package:novels_destiny/domain/entities/user_entity.dart';
 import 'package:novels_destiny/domain/repositories/auth_repository.dart';
 import 'package:novels_destiny/domain/usecases/auth_usecases.dart';

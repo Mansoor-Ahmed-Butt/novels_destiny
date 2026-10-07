@@ -14,10 +14,19 @@ class NovelRepositoryImpl implements INovelRepository {
 
   NovelRepositoryImpl(this._dataSource);
 
+  /// Refresh the local cache from Firestore and return published novels.
+  Future<List<NovelModel>> _fetchAndCachePublished() async {
+    final novels = await _firestore.getPublishedNovels();
+    _dataSource.loadNovels(novels);
+    return novels;
+  }
+
   @override
   Future<List<NovelEntity>> getFeaturedNovels() async {
     try {
-      return await _dataSource.getFeaturedNovels();
+      // Always fetch fresh from Firestore so readers see real uploads
+      final novels = await _fetchAndCachePublished();
+      return novels.where((n) => n.isPubliclyVisible).toList();
     } catch (e) {
       throw UnknownFailure('Failed to fetch featured novels: $e');
     }
@@ -26,7 +35,10 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<List<NovelEntity>> getTrendingNovels() async {
     try {
-      return await _dataSource.getTrendingNovels();
+      final novels = await _fetchAndCachePublished();
+      final list = novels.where((n) => n.isPubliclyVisible).toList();
+      list.sort((a, b) => b.totalViews.compareTo(a.totalViews));
+      return list;
     } catch (e) {
       throw UnknownFailure('Failed to fetch trending novels: $e');
     }
@@ -35,7 +47,10 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<List<NovelEntity>> getNovelsByGenre(String genre) async {
     try {
-      return await _dataSource.getNovelsByGenre(genre);
+      final novels = await _fetchAndCachePublished();
+      return novels
+          .where((n) => n.isPubliclyVisible && n.genreIds.any((g) => g.toLowerCase() == genre.toLowerCase()))
+          .toList();
     } catch (e) {
       throw UnknownFailure('Failed to fetch novels for genre $genre: $e');
     }
@@ -44,6 +59,8 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<List<NovelEntity>> searchNovels(String query, {String? genre, String? status}) async {
     try {
+      // Ensure cache is populated before searching
+      await _fetchAndCachePublished();
       return await _dataSource.searchNovels(query, genre: genre, status: status);
     } catch (e) {
       throw UnknownFailure('Search query failed: $e');
@@ -53,10 +70,11 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<NovelEntity?> getNovelById(String id) async {
     try {
+      // Try local cache first (fast path)
       final local = await _dataSource.getNovelById(id);
       if (local != null) return local;
 
-      // Try Firestore
+      // Fallback to Firestore
       final remote = await _firestore.getNovel(id);
       if (remote != null) {
         _dataSource.saveNovel(remote);
@@ -71,7 +89,10 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<List<NovelEntity>> getNovelsByWriter(String writerId) async {
     try {
-      return await _dataSource.getNovelsByWriter(writerId);
+      // Always fetch fresh writer novels from Firestore
+      final novels = await _firestore.getNovelsByWriter(writerId);
+      _dataSource.loadNovels(novels);
+      return novels;
     } catch (e) {
       throw UnknownFailure('Failed to fetch author novels: $e');
     }
@@ -87,9 +108,11 @@ class NovelRepositoryImpl implements INovelRepository {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       ));
-      final saved = await _dataSource.saveNovel(model);
+      // Save to Firestore first (source of truth)
       await _firestore.saveNovel(model);
-      return saved;
+      // Then cache locally
+      await _dataSource.saveNovel(model);
+      return model;
     } catch (e) {
       throw UnknownFailure('Failed to create novel: $e');
     }
@@ -102,8 +125,10 @@ class NovelRepositoryImpl implements INovelRepository {
         titleLowercase: novel.title.toLowerCase(),
         updatedAt: DateTime.now(),
       ));
-      final saved = await _dataSource.saveNovel(model);
+      // Save to Firestore first (source of truth)
       await _firestore.saveNovel(model);
+      // Then update local cache
+      final saved = await _dataSource.saveNovel(model);
       return saved;
     } catch (e) {
       throw UnknownFailure('Failed to update novel: $e');
@@ -113,6 +138,7 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<void> deleteNovel(String id) async {
     try {
+      await _firestore.deleteNovel(id);
       await _dataSource.deleteNovel(id);
     } catch (e) {
       throw UnknownFailure('Failed to delete novel: $e');
@@ -148,7 +174,29 @@ class NovelRepositoryImpl implements INovelRepository {
 
   @override
   Future<List<NovelEntity>> getSavedNovels(String userId) async {
-    return _dataSource.getSavedNovels(userId);
+    try {
+      // Get bookmarked IDs from Firestore
+      final bookmarkedIds = await _firestore.getBookmarkedNovelIds(userId);
+      if (bookmarkedIds.isEmpty) return [];
+
+      // Mark them saved in local cache
+      for (final id in bookmarkedIds) {
+        if (!_dataSource.isNovelSaved(id, userId)) {
+          _dataSource.toggleSaveNovel(id, userId);
+        }
+      }
+
+      // Fetch each novel (from cache or Firestore)
+      final novels = <NovelEntity>[];
+      for (final id in bookmarkedIds) {
+        final novel = await getNovelById(id);
+        if (novel != null) novels.add(novel);
+      }
+      return novels;
+    } catch (e) {
+      // Fallback to in-memory
+      return _dataSource.getSavedNovels(userId);
+    }
   }
 
   @override
@@ -167,7 +215,19 @@ class NovelRepositoryImpl implements INovelRepository {
 
   @override
   Future<List<ReadingProgressEntity>> getReadingHistory(String userId) async {
-    return _dataSource.getReadingHistory(userId);
+    try {
+      // Fetch from Firestore for persistence across sessions
+      final remote = await _firestore.getReadingHistory(userId);
+      if (remote.isNotEmpty) {
+        for (final p in remote) {
+          _dataSource.saveReadingProgress(userId, p);
+        }
+        return remote;
+      }
+      return _dataSource.getReadingHistory(userId);
+    } catch (e) {
+      return _dataSource.getReadingHistory(userId);
+    }
   }
 
   @override
