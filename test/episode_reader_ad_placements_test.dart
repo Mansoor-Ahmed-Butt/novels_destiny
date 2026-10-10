@@ -211,11 +211,91 @@ void main() {
         final firstAdIndex = normalBlocks.indexWhere(
           (b) => b.type == ContentBlockType.ad,
         );
-        expect(firstAdIndex, greaterThanOrEqualTo(4)); // Never on top!
+        expect(firstAdIndex, greaterThanOrEqualTo(2)); // Never on top!
         expect(
           normalBlocks[firstAdIndex].id,
           'auto_ad_norm_ep_slot_1',
         ); // Deterministic slot ID
+
+        // The story MUST NEVER end on an ad
+        expect(normalBlocks.last.type, ContentBlockType.text);
+      },
+    );
+
+    test(
+      'second episode story aligns 4 ads between the prose and never clusters ads at the end',
+      () {
+        // Simulates episode 2 with moderate prose and manual ad blocks from editor
+        final prose = '''
+        The wind howled through the ruined spires of the ancient fortress.
+        Kael took a deep breath, clutching his sword tightly against his side.
+        He knew the danger waiting ahead was far greater than anything he had faced.
+        Step by step, he climbed the crumbling staircase into the darkness.
+        A sudden flicker of starlight illuminated a hidden inscription on the wall.
+        It spoke of a forgotten king who gave his life to protect the realm.
+        Kael remembered his master's last words before the great war began.
+        Honor was not about winning battles, but protecting those who cannot fight.
+        He pressed on, ready to face whatever destiny had prepared for him.
+        The sanctuary doors creaked open as he approached the final hall.
+        ''';
+
+        final source = [
+          ContentBlockEntity(
+            id: 'ep2_text',
+            episodeId: 'ep_2',
+            type: ContentBlockType.text,
+            order: 1,
+            content: prose,
+          ),
+          // User added manual ad blocks in editor
+          ContentBlockEntity(
+            id: 'manual_ad_1',
+            episodeId: 'ep_2',
+            type: ContentBlockType.ad,
+            order: 2,
+          ),
+          ContentBlockEntity(
+            id: 'manual_ad_2',
+            episodeId: 'ep_2',
+            type: ContentBlockType.ad,
+            order: 3,
+          ),
+          ContentBlockEntity(
+            id: 'manual_ad_3',
+            episodeId: 'ep_2',
+            type: ContentBlockType.ad,
+            order: 4,
+          ),
+          ContentBlockEntity(
+            id: 'manual_ad_4',
+            episodeId: 'ep_2',
+            type: ContentBlockType.ad,
+            order: 5,
+          ),
+        ];
+
+        final blocks = EpisodeReaderAdPlacements.forReading(
+          source,
+          episodeId: 'ep_2',
+          injectAds: true,
+        );
+
+        // 1. First block must be text (not an ad)
+        expect(blocks.first.type, ContentBlockType.text);
+
+        // 2. Last block must be text (never ending on an ad!)
+        expect(blocks.last.type, ContentBlockType.text);
+
+        // 3. Exactly 4 banner ads present
+        final adBlocks = blocks.where((b) => b.type == ContentBlockType.ad).toList();
+        expect(adBlocks.length, 4);
+
+        // 4. No two ads are consecutive
+        for (var i = 0; i < blocks.length - 1; i++) {
+          if (blocks[i].type == ContentBlockType.ad) {
+            expect(blocks[i + 1].type, isNot(ContentBlockType.ad));
+          }
+        }
       },
     );
   });

@@ -16,7 +16,7 @@ class NovelTextHelper {
 
   /// Splits novel manuscript prose (English or Urdu) into clean reading lines / paragraphs.
   /// Handles varied author conventions: double newlines, single newlines, dialogue quotes,
-  /// and long continuous walls of text (splitting at natural sentence boundaries).
+  /// and continuous walls of text (splitting at natural sentence boundaries).
   static List<String> splitProseIntoLines(String prose) {
     final trimmed = prose.trim();
     if (trimmed.isEmpty) return const [];
@@ -28,20 +28,24 @@ class NovelTextHelper {
         .toList();
 
     final lines = <String>[];
+    // If there are few raw paragraphs, use a tighter chunk threshold (28 words)
+    // to give shorter episodes enough reading segments for even ad spacing.
+    final maxWordsPerChunk = rawBlocks.length >= 20 ? 50 : 28;
 
     for (final block in rawBlocks) {
       final isUrdu = isUrduText(block);
       final wordCount = block.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
 
-      // If a block is moderately sized or short (e.g. standard dialogue or paragraph), keep it intact.
-      if (wordCount <= 65) {
+      if (wordCount <= maxWordsPerChunk) {
         lines.add(block);
         continue;
       }
 
-      // If author wrote or pasted a long continuous wall of text without newlines,
-      // break it into coherent reading chunks at sentence boundaries.
-      final subLines = _breakLongBlockIntoSentences(block, isUrdu: isUrdu);
+      final subLines = _breakLongBlockIntoSentences(
+        block,
+        isUrdu: isUrdu,
+        targetWords: maxWordsPerChunk,
+      );
       if (subLines.isNotEmpty) {
         lines.addAll(subLines);
       } else {
@@ -52,9 +56,15 @@ class NovelTextHelper {
     return lines;
   }
 
-  static List<String> _breakLongBlockIntoSentences(String text, {required bool isUrdu}) {
+  static List<String> _breakLongBlockIntoSentences(
+    String text, {
+    required bool isUrdu,
+    int targetWords = 28,
+  }) {
+    // In Urdu, writers often use `۔` or `.` without trailing space.
+    // In English, sentences are separated by `.?!` and whitespace.
     final delimiterPattern = isUrdu
-        ? RegExp(r'(?<=[۔؟!])\s+')
+        ? RegExp(r'(?<=[۔.؟!])(?:\s+|(?=\S))')
         : RegExp(r'(?<=[.?!])\s+');
 
     final sentences = text
@@ -63,7 +73,17 @@ class NovelTextHelper {
         .where((s) => s.isNotEmpty)
         .toList();
 
-    if (sentences.length <= 1) return [text];
+    if (sentences.length <= 1) {
+      // If no standard punctuation is used, split by word count
+      final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+      if (words.length <= targetWords) return [text];
+      final chunks = <String>[];
+      for (var i = 0; i < words.length; i += targetWords) {
+        final end = (i + targetWords < words.length) ? i + targetWords : words.length;
+        chunks.add(words.sublist(i, end).join(' '));
+      }
+      return chunks;
+    }
 
     final chunks = <String>[];
     final currentChunk = StringBuffer();
@@ -71,7 +91,7 @@ class NovelTextHelper {
 
     for (final sentence in sentences) {
       final wordsInSentence = sentence.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
-      if (currentWords + wordsInSentence > 50 && currentChunk.isNotEmpty) {
+      if (currentWords + wordsInSentence > targetWords && currentChunk.isNotEmpty) {
         chunks.add(currentChunk.toString().trim());
         currentChunk.clear();
         currentWords = 0;

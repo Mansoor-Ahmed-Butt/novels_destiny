@@ -100,14 +100,13 @@ class EpisodeReaderAdPlacements {
     }
 
     // 4. Compute banner ad placement positions (strictly between story text)
-    // The user requested: every individual episode story contains 4 banner ads distributed between the text.
-    // NEVER placed at the top of the episode (requires reading prose first).
+    // Every individual episode story contains 4 banner ads distributed between the text.
+    // NEVER placed at the top of the episode and NEVER at the end of the episode.
     final adSlots = <int>{};
     if (injectAds && totalLines >= 4) {
-      final neededAds = (targetBannerAds - manualAdBlocks.length).clamp(1, targetBannerAds);
       final assignedAdSlots = _calculateAdPositions(
         totalLines: totalLines,
-        adCount: neededAds,
+        adCount: targetBannerAds,
         occupiedImageSlots: imageSlots.keys.toSet(),
       );
       adSlots.addAll(assignedAdSlots);
@@ -129,7 +128,7 @@ class EpisodeReaderAdPlacements {
         remainingImages.remove(img);
       }
 
-      // Check for banner ad after this line (only between story text, never on top)
+      // Check for banner ad after this line (strictly between story text, never on top or at end)
       if (adSlots.contains(i) && !imageSlots.containsKey(i)) {
         result.add(
           ContentBlockEntity(
@@ -149,10 +148,7 @@ class EpisodeReaderAdPlacements {
       result.add(leftover);
     }
 
-    // Append any manual ad blocks
-    result.addAll(manualAdBlocks);
-
-    // Append any PDF documents
+    // Append any PDF documents (never append ads at the end)
     result.addAll(pdfBlocks);
 
     return _reindex(result);
@@ -198,24 +194,44 @@ class EpisodeReaderAdPlacements {
     final positions = <int>[];
     if (adCount <= 0 || totalLines <= 1) return positions;
 
-    final actualAdCount = min(adCount, totalLines - 1);
+    // Never place an ad after the final line (totalLines - 1),
+    // because that would place the ad after the story has finished.
+    // The maximum index for an inline ad is totalLines - 2.
+    final maxAllowedIndex = totalLines - 2;
+    if (maxAllowedIndex < 1) {
+      if (totalLines >= 2 && !occupiedImageSlots.contains(0)) {
+        return [0];
+      }
+      return [];
+    }
 
-    // The first ad can NEVER appear on top of the episode (line 0).
+    final actualAdCount = min(adCount, maxAllowedIndex);
+
+    // The first ad can NEVER appear at the top of the episode (line 0).
     // Ensure story prose is read before the first ad.
-    // If long manuscript, start around line 4-6, if shorter, at least line 1.
-    final firstAdMinIndex = totalLines >= 16 ? 4 : (totalLines >= 8 ? 2 : 1);
+    final firstAdMinIndex = totalLines >= 20 ? 3 : (totalLines >= 10 ? 2 : 1);
+
+    // Divide manuscript into (actualAdCount + 1) segments
+    final step = totalLines / (actualAdCount + 1).toDouble();
 
     for (var i = 0; i < actualAdCount; i++) {
-      // Proportional spacing across the text: 1/5, 2/5, 3/5, 4/5
-      final proportionalTarget =
-          ((i + 1) * totalLines / (actualAdCount + 1)).round() - 1;
+      final idealPos = ((i + 1) * step).round() - 1;
 
-      final minPos = positions.isEmpty ? firstAdMinIndex : positions.last + 1;
-      var candidate = max(minPos, proportionalTarget).clamp(minPos, totalLines - 1);
+      // Ensure spacing between ads: at least 1-2 lines separating them
+      final minPos = positions.isEmpty ? firstAdMinIndex : positions.last + 2;
+      var candidate = max(minPos, idealPos);
+
+      if (candidate > maxAllowedIndex) {
+        if (positions.isNotEmpty && positions.last + 1 <= maxAllowedIndex) {
+          candidate = positions.last + 1;
+        } else {
+          break;
+        }
+      }
 
       // Collision avoidance with illustration images
       if (occupiedImageSlots.contains(candidate)) {
-        if (candidate + 1 < totalLines &&
+        if (candidate + 1 <= maxAllowedIndex &&
             !occupiedImageSlots.contains(candidate + 1) &&
             !positions.contains(candidate + 1)) {
           candidate = candidate + 1;
@@ -227,11 +243,11 @@ class EpisodeReaderAdPlacements {
       }
 
       // Ensure each ad has its own unique slot between story text
-      while (positions.contains(candidate) && candidate + 1 < totalLines) {
+      while (positions.contains(candidate) && candidate <= maxAllowedIndex) {
         candidate++;
       }
 
-      if (candidate < totalLines && !positions.contains(candidate)) {
+      if (candidate <= maxAllowedIndex && !positions.contains(candidate)) {
         positions.add(candidate);
       }
     }

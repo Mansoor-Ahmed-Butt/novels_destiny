@@ -305,7 +305,14 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                   children: [
                     Row(
                       children: [
-                        Text('Target: "${rep.targetTitle}"', style: AppTextStyles.titleSmall),
+                        Flexible(
+                          child: Text(
+                            'Target: "${rep.targetTitle}"',
+                            style: AppTextStyles.titleSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         const SizedBox(width: AppSpacing.s),
                         AppStatusChip.reportStatus(rep.status),
                       ],
@@ -374,7 +381,14 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                   children: [
                     Row(
                       children: [
-                        Text(u.displayName, style: AppTextStyles.titleSmall),
+                        Flexible(
+                          child: Text(
+                            u.displayName,
+                            style: AppTextStyles.titleSmall,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         const SizedBox(width: AppSpacing.s),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -393,13 +407,38 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    Text(u.email, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary)),
+                    Text(
+                      u.email,
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
-              AppSecondaryButton(
-                label: u.isActive ? 'Suspend' : 'Activate',
+              const SizedBox(width: AppSpacing.s),
+              OutlinedButton(
                 onPressed: () => controller.toggleUserStatus(u),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: u.isActive ? AppColors.error : AppColors.primary,
+                  side: BorderSide(
+                    color: u.isActive
+                        ? AppColors.error.withValues(alpha: 0.5)
+                        : AppColors.primary.withValues(alpha: 0.5),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadii.pill),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  visualDensity: VisualDensity.compact,
+                ),
+                child: Text(
+                  u.isActive ? 'Suspend' : 'Activate',
+                  style: AppTextStyles.labelMedium.copyWith(
+                    color: u.isActive ? AppColors.error : AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
