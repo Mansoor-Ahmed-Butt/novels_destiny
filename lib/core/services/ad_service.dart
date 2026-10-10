@@ -20,7 +20,10 @@ class AdService {
   bool _isInterstitialLoading = false;
 
   DateTime? _lastInterstitialShownAt;
+  DateTime? get lastInterstitialShownAt => _lastInterstitialShownAt;
+
   String? _lastInterstitialEpisodeId;
+  String? get lastInterstitialEpisodeId => _lastInterstitialEpisodeId;
 
   bool get _adsEnabledFromEnv {
     if (!dotenv.isInitialized) return true;
@@ -57,15 +60,18 @@ class AdService {
       final fromEnv = Platform.isAndroid
           ? dotenv.env[androidEnvKey]?.trim()
           : dotenv.env[iosEnvKey]?.trim();
-      if (fromEnv != null && fromEnv.isNotEmpty) return fromEnv;
+      if (fromEnv != null &&
+          fromEnv.isNotEmpty &&
+          !fromEnv.contains('xxxxxxxx')) {
+        return fromEnv;
+      }
     }
     return Platform.isAndroid ? testAndroid : testIos;
   }
 
-  /// Readers and guests see ads; admins do not (moderation / QA without noise).
+  /// Readers, guests, and admins can view ads (consistent monetization & QA verification).
   bool shouldShowAdsFor({UserRole? role}) {
     if (!_isInitialized || !_adsEnabledFromEnv) return false;
-    if (role == UserRole.admin) return false;
     return true;
   }
 
@@ -153,24 +159,41 @@ class AdService {
     );
   }
 
-  /// Interstitial when entering a chapter — capped for policy-friendly frequency.
+  /// Interstitial ad shown when opening an episode or clicking next episode.
   Future<void> showInterstitialForEpisode(
     String episodeId, {
     UserRole? role,
+    bool isNextEpisode = false,
   }) async {
     if (!shouldShowAdsFor(role: role)) return;
-    if (_lastInterstitialEpisodeId == episodeId) return;
 
-    final now = DateTime.now();
-    if (_lastInterstitialShownAt != null &&
-        now.difference(_lastInterstitialShownAt!) <
-            AdConstants.interstitialCooldown) {
+    _lastInterstitialEpisodeId = episodeId;
+    _lastInterstitialShownAt = DateTime.now();
+
+    // If already preloaded, show immediately
+    if (_interstitialAd != null) {
+      await showInterstitialAsync();
       return;
     }
 
-    _lastInterstitialEpisodeId = episodeId;
-    _lastInterstitialShownAt = now;
-    await showInterstitialAsync();
+    // If interstitial is loading, wait up to 3 seconds for it to finish and show
+    final completer = Completer<void>();
+    preloadInterstitial();
+
+    final stopwatch = Stopwatch()..start();
+    Timer.periodic(const Duration(milliseconds: 150), (timer) {
+      if (_interstitialAd != null) {
+        timer.cancel();
+        showInterstitial(onDismiss: () {
+          if (!completer.isCompleted) completer.complete();
+        });
+      } else if (!_isInterstitialLoading || stopwatch.elapsedMilliseconds >= 3000) {
+        timer.cancel();
+        if (!completer.isCompleted) completer.complete();
+      }
+    });
+
+    await completer.future;
   }
 
   Future<void> showInterstitialAsync() {

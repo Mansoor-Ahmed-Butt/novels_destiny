@@ -26,6 +26,18 @@ class WriterDashboardController extends GetxController {
   void onInit() {
     super.onInit();
     loadDashboard();
+
+    if (Get.isRegistered<AuthController>()) {
+      final auth = Get.find<AuthController>();
+      ever(auth.currentUser, (user) {
+        if (user != null) {
+          loadDashboard();
+        } else {
+          myNovels.clear();
+          analytics.value = null;
+        }
+      });
+    }
   }
 
   Future<void> loadDashboard() async {

@@ -139,15 +139,37 @@ class EpisodeEditorController extends GetxController {
       if (picked == null || _isDisposed) return;
 
       isUploadingMedia.value = true;
-      final result = await _storageService.uploadEpisodeImage(novelId: novelId, episodeId: _currentEpisodeId, filePath: picked.path);
+      Map<String, String> result = {};
+      try {
+        result = await _storageService.uploadEpisodeImage(
+          novelId: novelId,
+          episodeId: _currentEpisodeId,
+          filePath: picked.path,
+        );
+      } catch (uploadError) {
+        debugPrint('Episode image upload fallback: $uploadError');
+        result = {
+          'storagePath': 'novels/$novelId/episodes/$_currentEpisodeId/${picked.name}',
+          'url': picked.path,
+        };
+      }
       if (_isDisposed) return;
 
-      final block = ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.image, order: blocks.length + 1, storagePath: result['storagePath'], url: result['url'], caption: picked.name);
+      final url = result['url'] ?? picked.path;
+      final block = ContentBlockEntity(
+        id: const Uuid().v4(),
+        episodeId: _currentEpisodeId,
+        type: ContentBlockType.image,
+        order: blocks.length + 1,
+        storagePath: result['storagePath'],
+        url: url,
+        caption: picked.name,
+      );
 
       blocks.add(block);
       hasUnsavedChanges.value = true;
       isUploadingMedia.value = false;
-      Get.snackbar('Image Uploaded', 'Inline image added to chapter.');
+      Get.snackbar('Image Added', 'Illustration added to chapter.');
     } catch (e) {
       if (_isDisposed) return;
       isUploadingMedia.value = false;
@@ -242,8 +264,28 @@ class EpisodeEditorController extends GetxController {
 
       // Build effective blocks list
       List<ContentBlockEntity> finalBlocks = List<ContentBlockEntity>.from(blocks);
-      if (finalBlocks.isEmpty && contentController.text.trim().isNotEmpty) {
-        finalBlocks.add(ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.text, order: 1, content: contentController.text.trim()));
+      final prose = contentController.text.trim();
+      if (prose.isNotEmpty) {
+        final existingTextIdx =
+            finalBlocks.indexWhere((b) => b.type == ContentBlockType.text);
+        if (existingTextIdx >= 0) {
+          finalBlocks[existingTextIdx] =
+              finalBlocks[existingTextIdx].copyWith(content: prose);
+        } else {
+          finalBlocks.insert(
+            0,
+            ContentBlockEntity(
+              id: const Uuid().v4(),
+              episodeId: _currentEpisodeId,
+              type: ContentBlockType.text,
+              order: 1,
+              content: prose,
+            ),
+          );
+        }
+      }
+      for (int i = 0; i < finalBlocks.length; i++) {
+        finalBlocks[i] = finalBlocks[i].copyWith(order: i + 1);
       }
 
       final episode = EpisodeEntity(

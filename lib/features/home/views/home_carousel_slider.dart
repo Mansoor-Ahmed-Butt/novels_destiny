@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../domain/entities/novel_entity.dart';
+import '../../../core/widgets/app_adaptive_image.dart';
 import '../controllers/home_carousel_controller.dart';
 
 class HomeCarouselSlider extends StatefulWidget {
@@ -388,14 +389,11 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
   }
 
   Widget _buildCoverImage(String? coverUrl) {
-    if (coverUrl != null && coverUrl.isNotEmpty) {
-      return Image.network(
-        coverUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _fallbackCover(),
-      );
-    }
-    return _fallbackCover();
+    return AppAdaptiveImage(
+      url: coverUrl,
+      fit: BoxFit.cover,
+      errorWidget: _fallbackCover(),
+    );
   }
 
   Widget _fallbackCover() {

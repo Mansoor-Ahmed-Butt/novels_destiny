@@ -16,6 +16,14 @@ class WriterDashboardPage extends GetView<WriterDashboardController> {
 
   @override
   Widget build(BuildContext context) {
+    if (!controller.isLoading.value && controller.myNovels.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!controller.isLoading.value && controller.myNovels.isEmpty) {
+          controller.loadDashboard();
+        }
+      });
+    }
+
     return AppScaffold(
       body: Obx(() {
         if (controller.isLoading.value) {

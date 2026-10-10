@@ -19,6 +19,14 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
 
   @override
   Widget build(BuildContext context) {
+    if (!controller.isLoading.value && (controller.analytics.value == null || controller.users.isEmpty)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!controller.isLoading.value && (controller.analytics.value == null || controller.users.isEmpty)) {
+          controller.loadDashboard();
+        }
+      });
+    }
+
     return AppScaffold(
       body: Obx(() {
         if (controller.isLoading.value) {
@@ -51,7 +59,10 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                       mainValue: _formatNumber(stats?.totalReads ?? 0),
                       unit: 'all-time reads',
                       subMetrics: [
-                        SummarySubMetric(label: 'Total Users', value: '${stats?.totalUsers ?? 0}'),
+                        SummarySubMetric(
+                          label: 'Total Users',
+                          value: '${(stats?.totalUsers != null && stats!.totalUsers > 0) ? stats.totalUsers : controller.users.length}',
+                        ),
                         SummarySubMetric(label: 'Stories', value: '${stats?.totalNovels ?? 0}'),
                         SummarySubMetric(label: 'Pending Review', value: '${controller.pendingNovels.length}'),
                         SummarySubMetric(label: 'Reports', value: '${controller.reports.where((r) => r.status == ReportStatus.pending).length}'),

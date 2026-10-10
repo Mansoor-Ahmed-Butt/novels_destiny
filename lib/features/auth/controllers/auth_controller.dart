@@ -6,6 +6,8 @@ import '../../../data/sources/app_data_source.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../../domain/usecases/auth_usecases.dart';
 import '../../main_shell/main_shell_page.dart';
+import '../../admin_dashboard/controllers/admin_dashboard_controller.dart';
+import '../../writer_dashboard/controllers/writer_dashboard_controller.dart';
 import '../states/auth_state.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/services/logger_service.dart';
@@ -120,6 +122,11 @@ class AuthController extends GetxController {
         currentUser.value = restored;
         state.value = Authenticated(restored);
         _logger.info('User session restored: ${restored.email} (${restored.role.name})');
+        if (restored.role == UserRole.admin && Get.isRegistered<AdminDashboardController>()) {
+          Get.find<AdminDashboardController>().loadDashboard();
+        } else if (restored.role == UserRole.writer && Get.isRegistered<WriterDashboardController>()) {
+          Get.find<WriterDashboardController>().loadDashboard();
+        }
         return restored;
       }
     } catch (e) {
@@ -224,6 +231,11 @@ class AuthController extends GetxController {
     } else {
       if (Get.isRegistered<MainShellController>()) {
         Get.find<MainShellController>().setInitialTabForRole(user.role);
+      }
+      if (user.role == UserRole.admin && Get.isRegistered<AdminDashboardController>()) {
+        Get.find<AdminDashboardController>().loadDashboard();
+      } else if (user.role == UserRole.writer && Get.isRegistered<WriterDashboardController>()) {
+        Get.find<WriterDashboardController>().loadDashboard();
       }
       Get.offAllNamed(AppRoutes.shell);
     }

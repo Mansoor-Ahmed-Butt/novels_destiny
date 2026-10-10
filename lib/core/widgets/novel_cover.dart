@@ -1,6 +1,6 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../app/theme/app_theme.dart';
+import 'app_adaptive_image.dart';
 
 class NovelCover extends StatelessWidget {
   final String url;
@@ -36,49 +36,13 @@ class NovelCover extends StatelessWidget {
   }
 
   Widget _buildCoverImage() {
-    if (url.trim().isEmpty) {
-      return _buildPlaceholder();
-    }
-
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return Image.network(
-        url,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            width: width,
-            height: height,
-            color: AppColors.surfaceMuted,
-            child: const Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primaryLight,
-                ),
-              ),
-            ),
-          );
-        },
-      );
-    } else {
-      final file = File(url);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          width: width,
-          height: height,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
-        );
-      }
-      return _buildPlaceholder();
-    }
+    return AppAdaptiveImage(
+      url: url,
+      width: width,
+      height: height,
+      fit: BoxFit.cover,
+      errorWidget: _buildPlaceholder(),
+    );
   }
 
   Widget _buildPlaceholder() {

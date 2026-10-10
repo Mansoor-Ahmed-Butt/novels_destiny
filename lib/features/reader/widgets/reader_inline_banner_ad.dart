@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -23,10 +25,15 @@ class ReaderInlineBannerAd extends StatefulWidget {
   State<ReaderInlineBannerAd> createState() => _ReaderInlineBannerAdState();
 }
 
-class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd> {
+class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd>
+    with AutomaticKeepAliveClientMixin {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
   bool _failed = false;
+  bool _isDisposed = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -39,13 +46,15 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd> {
   }
 
   void _loadAd() {
+    if (_isDisposed) return;
     final ad = AdService().createBannerAd(
       onAdLoaded: () {
-        if (!mounted) return;
+        if (!mounted || _isDisposed) return;
         setState(() => _isLoaded = true);
       },
-      onAdFailedToLoad: (_) {
-        if (!mounted) return;
+      onAdFailedToLoad: (err) {
+        debugPrint('ReaderInlineBannerAd: Failed to load banner ad for ${widget.slotKey}: $err');
+        if (!mounted || _isDisposed) return;
         setState(() {
           _failed = true;
           _isLoaded = false;
@@ -54,7 +63,9 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd> {
     );
 
     if (ad == null) {
-      _failed = true;
+      if (!_isDisposed && mounted) {
+        setState(() => _failed = true);
+      }
       return;
     }
 
@@ -64,6 +75,7 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd> {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _bannerAd?.dispose();
     _bannerAd = null;
     super.dispose();
@@ -71,6 +83,8 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     if (!AdService().shouldShowAdsFor(role: widget.userRole)) {
       return const SizedBox.shrink();
     }
@@ -78,13 +92,60 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd> {
     final ad = _bannerAd;
 
     if (_isLoaded && ad != null) {
+      return RepaintBoundary(
+        child: Container(
+          key: ValueKey(widget.slotKey),
+          margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
+          alignment: Alignment.center,
+          height: ad.size.height.toDouble(),
+          width: ad.size.width.toDouble(),
+          child: AdWidget(ad: ad),
+        ),
+      );
+    }
+
+    // In debug mode on non-mobile platforms (e.g. Windows desktop), show visual test banner slot
+    if (kDebugMode && (kIsWeb || (!Platform.isAndroid && !Platform.isIOS))) {
       return Container(
         key: ValueKey(widget.slotKey),
         margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
-        alignment: Alignment.center,
-        height: ad.size.height.toDouble(),
-        width: ad.size.width.toDouble(),
-        child: AdWidget(ad: ad),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: widget.theme.textColor.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppRadii.m),
+          border: Border.all(
+            color: widget.theme.textColor.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(AppRadii.xs),
+                ),
+                child: const Text(
+                  'Ad',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Google AdMob Inline Banner (Test Unit)',
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: widget.theme.textColor.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 

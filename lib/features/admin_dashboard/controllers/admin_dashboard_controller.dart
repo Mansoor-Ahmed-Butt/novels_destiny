@@ -29,17 +29,17 @@ class AdminDashboardController extends GetxController {
   Future<void> loadDashboard() async {
     try {
       isLoading.value = true;
-      final platformStats = await _adminUseCases.getPlatformAnalytics();
       final allUsers = await _adminUseCases.getAllUsers();
       final pendingApplicants = await _adminUseCases.getPendingWriters();
       final pending = await _adminUseCases.getPendingNovels();
       final repList = await _adminUseCases.getReports();
+      final platformStats = await _adminUseCases.getPlatformAnalytics();
 
-      analytics.value = platformStats;
       users.assignAll(allUsers);
       pendingWriters.assignAll(pendingApplicants);
       pendingNovels.assignAll(pending);
       reports.assignAll(repList);
+      analytics.value = platformStats;
 
       isLoading.value = false;
     } catch (e) {

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../../../app/theme/app_theme.dart';
-import '../../../domain/entities/novel_entity.dart';
-import '../../../core/widgets/novel_cover.dart';
-import '../../../core/widgets/app_status_chip.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_status_chip.dart';
+import '../../../core/widgets/novel_cover.dart';
+import '../../../domain/entities/novel_entity.dart';
 
 class NovelHeroSection extends StatelessWidget {
   final NovelEntity novel;
-
   const NovelHeroSection({super.key, required this.novel});
 
   @override
@@ -30,6 +30,7 @@ class NovelHeroSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Status Chips
                 Wrap(
                   spacing: AppSpacing.s,
                   runSpacing: AppSpacing.xs,
@@ -70,32 +71,53 @@ class NovelHeroSection extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.s),
+
+                // Novel Title
                 Text(
                   novel.title,
-                  style: AppTextStyles.displayMedium.copyWith(fontSize: 22, height: 1.2),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTextStyles.displayMedium.copyWith(
+                    fontSize: 22,
+                    height: 1.2,
+                  ),
                 ),
                 const SizedBox(height: 4),
+
+                // Author Row (Fixed Overflow Here)
                 Row(
                   children: [
                     Text(
                       'Written by ',
-                      style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textTertiary),
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
                     ),
-                    Text(
-                      novel.writerName,
-                      style: AppTextStyles.labelLarge.copyWith(color: AppColors.primary),
+                    Expanded(
+                      child: Text(
+                        novel.writerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.labelLarge.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.m),
-                // Genre tags
+
+                // Genre Tags
                 Wrap(
                   spacing: AppSpacing.xs,
                   runSpacing: AppSpacing.xs,
                   children: novel.genreIds
                       .map(
                         (g) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.card,
                             borderRadius: BorderRadius.circular(AppRadii.pill),
@@ -103,7 +125,9 @@ class NovelHeroSection extends StatelessWidget {
                           ),
                           child: Text(
                             g,
-                            style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
+                            style: AppTextStyles.labelSmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       )

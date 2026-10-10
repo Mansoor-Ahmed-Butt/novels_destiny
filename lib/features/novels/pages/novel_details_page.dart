@@ -12,9 +12,6 @@ import '../views/novel_hero_section.dart';
 import '../views/novel_metadata_section.dart';
 import '../views/episode_list_section.dart';
 import '../widgets/novel_action_bar.dart';
-import '../../../core/widgets/adaptive_banner_slot.dart';
-import '../../auth/controllers/auth_controller.dart';
-
 class NovelDetailsPage extends StatelessWidget {
   const NovelDetailsPage({super.key});
 
@@ -23,7 +20,6 @@ class NovelDetailsPage extends StatelessWidget {
     // Read the tag here, inside build, so Get.parameters is populated
     final novelId = Get.parameters['id'] ?? '';
     final ctrl = Get.find<NovelDetailsController>(tag: novelId);
-    final userRole = Get.find<AuthController>().currentUser.value?.role;
 
     return AppScaffold(
       body: Obx(() {
@@ -48,7 +44,7 @@ class NovelDetailsPage extends StatelessWidget {
                     left: AppSpacing.l,
                     right: AppSpacing.l,
                     top: AppSpacing.l,
-                    bottom: 100,
+                    bottom: 80,
                   ),
                   child: Center(
                     child: ConstrainedBox(
@@ -71,18 +67,6 @@ class NovelDetailsPage extends StatelessWidget {
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: AppSpacing.l,
-                  right: AppSpacing.l,
-                  bottom: 76,
-                  child: Center(
-                    child: AdaptiveBannerSlot(
-                      placementKey: 'novel_details_$novelId',
-                      userRole: userRole,
-                      margin: EdgeInsets.zero,
                     ),
                   ),
                 ),

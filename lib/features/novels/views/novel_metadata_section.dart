@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../domain/entities/novel_entity.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_adaptive_image.dart';
 
 class NovelMetadataSection extends StatelessWidget {
   final NovelEntity novel;
@@ -165,18 +166,11 @@ class NovelMetadataSection extends StatelessWidget {
                               border: Border.all(color: AppColors.cardBorder),
                               borderRadius: BorderRadius.circular(AppRadii.m),
                             ),
-                            child: Image.network(
-                              imgUrl,
+                            child: AppAdaptiveImage(
+                              url: imgUrl,
+                              width: 80,
+                              height: 110,
                               fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                color: AppColors.surface,
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.broken_image_rounded,
-                                  color: AppColors.textTertiary,
-                                  size: 20,
-                                ),
-                              ),
                             ),
                           ),
                         ),
@@ -203,14 +197,9 @@ class NovelMetadataSection extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadii.card),
-              child: Image.network(
-                url,
+              child: AppAdaptiveImage(
+                url: url,
                 fit: BoxFit.contain,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: AppColors.card,
-                  padding: const EdgeInsets.all(32),
-                  child: const Text('Failed to load artwork.'),
-                ),
               ),
             ),
             Positioned(

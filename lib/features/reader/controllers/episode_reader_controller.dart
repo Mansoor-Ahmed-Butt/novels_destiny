@@ -2,10 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../domain/entities/episode_entity.dart';
+import '../../../domain/entities/content_block_entity.dart';
 import '../../../domain/entities/reading_progress_entity.dart';
 import '../../../domain/usecases/novel_usecases.dart';
 import '../../../domain/usecases/episode_usecases.dart';
 import '../../../core/services/logger_service.dart';
+import '../../../core/services/episode_reader_ad_placements.dart';
 import '../states/episode_reader_state.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../core/services/ad_service.dart';
@@ -34,6 +36,12 @@ class EpisodeReaderController extends GetxController {
   final Rx<ReaderFontFamily> fontFamily = ReaderFontFamily.serif.obs;
   final RxDouble lineHeight = 1.7.obs;
   final RxBool showControls = true.obs;
+
+  // Lightweight progress observable: prevents rebuilding entire chapter widget tree during scroll
+  final RxDouble progressPercent = 0.0.obs;
+
+  // Pre-computed ordered blocks: calculated once per chapter load
+  final RxList<ContentBlockEntity> readingBlocks = <ContentBlockEntity>[].obs;
 
   late String _currentEpisodeId;
   Timer? _progressDebounce;
@@ -87,6 +95,16 @@ class EpisodeReaderController extends GetxController {
         }
       }
 
+      // Pre-compute interleaved reading blocks once
+      final showAds = AdService().shouldShowAdsFor(role: role);
+      final blocks = EpisodeReaderAdPlacements.forReading(
+        currentEp.effectiveBlocks,
+        episodeId: episodeId,
+        injectAds: showAds,
+      );
+      readingBlocks.assignAll(blocks);
+      progressPercent.value = savedProgress;
+
       state.value = EpisodeReaderReady(
         novel: novel,
         currentEpisode: currentEp,
@@ -112,15 +130,12 @@ class EpisodeReaderController extends GetxController {
     if (max <= 0) return;
 
     final progress = (current / max).clamp(0.0, 1.0);
-
-    final s = state.value;
-    if (s is EpisodeReaderReady) {
-      state.value = s.copyWith(progressPercent: progress);
-      _debounceSaveProgress(progress, current);
-    }
+    // Only update the lightweight progress observable, do NOT rebuild the entire page state
+    progressPercent.value = progress;
+    _debounceSaveProgress(progress, current);
   }
 
-  void _debounceSaveProgress(double progressPercent, double offset) {
+  void _debounceSaveProgress(double progress, double offset) {
     _progressDebounce?.cancel();
     _progressDebounce = Timer(const Duration(seconds: 2), () async {
       final auth = Get.find<AuthController>();
@@ -134,12 +149,12 @@ class EpisodeReaderController extends GetxController {
             episodeId: s.currentEpisode.id,
             episodeNumber: s.currentEpisode.episodeNumber,
             scrollOffset: offset,
-            progressPercent: progressPercent,
+            progressPercent: progress,
             updatedAt: DateTime.now(),
           ),
         );
         _logger.debug(
-          'Progress auto-saved for novel $novelId, ep ${s.currentEpisode.episodeNumber}: ${(progressPercent * 100).toInt()}%',
+          'Progress auto-saved for novel $novelId, ep ${s.currentEpisode.episodeNumber}: ${(progress * 100).toInt()}%',
         );
       }
     });

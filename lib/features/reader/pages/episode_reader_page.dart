@@ -10,12 +10,12 @@ import '../controllers/episode_reader_controller.dart';
 import '../states/episode_reader_state.dart';
 import '../widgets/reader_settings_sheet.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
-import '../../../core/services/ad_service.dart';
-import '../../../core/services/episode_reader_ad_placements.dart';
 import '../../../domain/entities/content_block_entity.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../widgets/reader_inline_banner_ad.dart';
+import '../../../core/widgets/app_adaptive_image.dart';
+import '../../../core/utils/novel_text_helper.dart';
 
 class EpisodeReaderPage extends StatelessWidget {
   const EpisodeReaderPage({super.key});
@@ -26,7 +26,6 @@ class EpisodeReaderPage extends StatelessWidget {
     final episodeId = Get.parameters['episodeId'] ?? '';
     final ctrl = Get.find<EpisodeReaderController>(tag: '$novelId-$episodeId');
     final userRole = Get.find<AuthController>().currentUser.value?.role;
-    final showAds = AdService().shouldShowAdsFor(role: userRole);
 
     return Obx(() {
       final state = ctrl.state.value;
@@ -37,18 +36,18 @@ class EpisodeReaderPage extends StatelessWidget {
         appBar: _buildAppBar(context, ctrl, state, theme),
         drawer: _buildTocDrawer(context, ctrl, state),
         body: switch (state) {
-          EpisodeReaderLoading() =>
-            const AppLoadingState(message: 'Opening chapter page...'),
+          EpisodeReaderLoading() => const AppLoadingState(
+            message: 'Opening chapter page...',
+          ),
           EpisodeReaderFailure(:final message) => AppErrorState(
-              message: message,
-              onRetry: () => ctrl.loadEpisode(ctrl.initialEpisodeId),
-            ),
+            message: message,
+            onRetry: () => ctrl.loadEpisode(ctrl.initialEpisodeId),
+          ),
           EpisodeReaderReady(
             :final novel,
             :final currentEpisode,
             :final previousEpisode,
             :final nextEpisode,
-            :final progressPercent
           ) =>
             Stack(
               children: [
@@ -64,7 +63,8 @@ class EpisodeReaderPage extends StatelessWidget {
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(
-                            maxWidth: AppBreakpoints.maxReaderWidth),
+                          maxWidth: AppBreakpoints.maxReaderWidth,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -79,20 +79,33 @@ class EpisodeReaderPage extends StatelessWidget {
                             const SizedBox(height: AppSpacing.s),
                             Text(
                               currentEpisode.title,
-                              style: ctrl.fontFamily.value ==
-                                      ReaderFontFamily.serif
-                                  ? GoogleFonts.merriweather(
+                              textDirection: NovelTextHelper.isUrduText(currentEpisode.title)
+                                  ? TextDirection.rtl
+                                  : TextDirection.ltr,
+                              textAlign: NovelTextHelper.isUrduText(currentEpisode.title)
+                                  ? TextAlign.right
+                                  : TextAlign.left,
+                              style: NovelTextHelper.isUrduText(currentEpisode.title)
+                                  ? GoogleFonts.notoNastaliqUrdu(
                                       fontSize: ctrl.fontSize.value + 8,
                                       fontWeight: FontWeight.w700,
                                       color: theme.textColor,
-                                      height: 1.3,
+                                      height: 1.8,
                                     )
-                                  : GoogleFonts.plusJakartaSans(
-                                      fontSize: ctrl.fontSize.value + 8,
-                                      fontWeight: FontWeight.w700,
-                                      color: theme.textColor,
-                                      height: 1.3,
-                                    ),
+                                  : (ctrl.fontFamily.value ==
+                                          ReaderFontFamily.serif
+                                      ? GoogleFonts.merriweather(
+                                          fontSize: ctrl.fontSize.value + 8,
+                                          fontWeight: FontWeight.w700,
+                                          color: theme.textColor,
+                                          height: 1.3,
+                                        )
+                                      : GoogleFonts.plusJakartaSans(
+                                          fontSize: ctrl.fontSize.value + 8,
+                                          fontWeight: FontWeight.w700,
+                                          color: theme.textColor,
+                                          height: 1.3,
+                                        )),
                             ),
                             const SizedBox(height: AppSpacing.s),
                             Text(
@@ -103,27 +116,68 @@ class EpisodeReaderPage extends StatelessWidget {
                             ),
                             const SizedBox(height: AppSpacing.xl),
                             Divider(
-                                color: theme.textColor.withValues(alpha: 0.15)),
+                              color: theme.textColor.withValues(alpha: 0.15),
+                            ),
                             const SizedBox(height: AppSpacing.xl),
 
                             // Main Story Content (Sequential Content Blocks)
                             ..._buildContentBlocks(
                               ctrl,
                               theme,
-                              EpisodeReaderAdPlacements.forReading(
-                                currentEpisode.effectiveBlocks,
-                                episodeId: currentEpisode.id,
-                                injectAds: showAds,
-                              ),
+                              ctrl.readingBlocks,
                               userRole: userRole,
                             ),
 
                             const SizedBox(height: AppSpacing.xxxl),
                             Divider(
-                                color: theme.textColor.withValues(alpha: 0.15)),
+                              color: theme.textColor.withValues(alpha: 0.15),
+                            ),
                             const SizedBox(height: AppSpacing.xl),
 
-                            // Previous / Next Episode Navigation Buttons
+                            // Latest Chapter caught-up indicator
+                            if (nextEpisode == null) ...[
+                              Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.textColor.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadii.pill,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle_outline_rounded,
+                                        size: 16,
+                                        color: theme.textColor.withValues(
+                                          alpha: 0.7,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          "You've caught up with the latest chapter!",
+                                          style: AppTextStyles.bodySmall
+                                              .copyWith(color: theme.textColor),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.l),
+                            ],
+
+                            // Navigation Buttons (Prev / Next Chapter)
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -134,7 +188,7 @@ class EpisodeReaderPage extends StatelessWidget {
                                     onPressed: ctrl.goToPreviousEpisode,
                                   )
                                 else
-                                  const SizedBox.shrink(),
+                                  const SizedBox(width: 8),
                                 if (nextEpisode != null)
                                   AppPrimaryButton(
                                     label: 'Next Chapter',
@@ -142,21 +196,7 @@ class EpisodeReaderPage extends StatelessWidget {
                                     onPressed: ctrl.goToNextEpisode,
                                   )
                                 else
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: theme.textColor
-                                          .withValues(alpha: 0.08),
-                                      borderRadius:
-                                          BorderRadius.circular(AppRadii.pill),
-                                    ),
-                                    child: Text(
-                                      "You've caught up with the latest chapter!",
-                                      style: AppTextStyles.bodySmall
-                                          .copyWith(color: theme.textColor),
-                                    ),
-                                  ),
+                                  const SizedBox(width: 8),
                               ],
                             ),
                             const SizedBox(height: AppSpacing.xxxl),
@@ -172,11 +212,13 @@ class EpisodeReaderPage extends StatelessWidget {
                   top: 0,
                   left: 0,
                   right: 0,
-                  child: LinearProgressIndicator(
-                    value: progressPercent.clamp(0.0, 1.0),
-                    backgroundColor: Colors.transparent,
-                    color: AppColors.accent,
-                    minHeight: 3,
+                  child: Obx(
+                    () => LinearProgressIndicator(
+                      value: ctrl.progressPercent.value.clamp(0.0, 1.0),
+                      backgroundColor: Colors.transparent,
+                      color: AppColors.accent,
+                      minHeight: 3,
+                    ),
                   ),
                 ),
               ],
@@ -194,8 +236,9 @@ class EpisodeReaderPage extends StatelessWidget {
   ) {
     if (!ctrl.showControls.value) return null;
 
-    final title =
-        state is EpisodeReaderReady ? state.currentEpisode.title : 'Reader';
+    final title = state is EpisodeReaderReady
+        ? state.currentEpisode.title
+        : 'Reader';
 
     return AppBar(
       backgroundColor: theme.backgroundColor,
@@ -249,14 +292,16 @@ class EpisodeReaderPage extends StatelessWidget {
                 children: [
                   Text(
                     state.novel.title,
-                    style: AppTextStyles.titleMedium
-                        .copyWith(fontWeight: FontWeight.w700),
+                    style: AppTextStyles.titleMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     'Table of Contents (${state.allEpisodes.length} Chapters)',
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textTertiary),
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
                   ),
                 ],
               ),
@@ -271,12 +316,14 @@ class EpisodeReaderPage extends StatelessWidget {
                   final isCurrent = ep.id == state.currentEpisode.id;
 
                   return ListTile(
-                    tileColor:
-                        isCurrent ? AppColors.surfaceMuted : Colors.transparent,
+                    tileColor: isCurrent
+                        ? AppColors.surfaceMuted
+                        : Colors.transparent,
                     leading: CircleAvatar(
                       radius: 14,
-                      backgroundColor:
-                          isCurrent ? AppColors.primary : AppColors.surface,
+                      backgroundColor: isCurrent
+                          ? AppColors.primary
+                          : AppColors.surface,
                       child: Text(
                         '${ep.episodeNumber}',
                         style: TextStyle(
@@ -291,15 +338,19 @@ class EpisodeReaderPage extends StatelessWidget {
                     title: Text(
                       ep.title,
                       style: AppTextStyles.labelLarge.copyWith(
-                        fontWeight:
-                            isCurrent ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: isCurrent
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: isCurrent
-                        ? const Icon(Icons.bookmark_rounded,
-                            size: 18, color: AppColors.accent)
+                        ? const Icon(
+                            Icons.bookmark_rounded,
+                            size: 18,
+                            color: AppColors.accent,
+                          )
                         : null,
                     onTap: () {
                       Navigator.of(context).pop();
@@ -325,7 +376,9 @@ class EpisodeReaderPage extends StatelessWidget {
       return [
         Text(
           'No content available in this chapter.',
-          style: AppTextStyles.bodyMedium.copyWith(color: theme.textColor.withValues(alpha: 0.6)),
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: theme.textColor.withValues(alpha: 0.6),
+          ),
         ),
       ];
     }
@@ -336,22 +389,31 @@ class EpisodeReaderPage extends StatelessWidget {
       switch (block.type) {
         case ContentBlockType.text:
           if (block.content.trim().isNotEmpty) {
+            final isUrdu = NovelTextHelper.isUrduText(block.content);
             widgets.add(
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.l),
                 child: Text(
                   block.content,
-                  style: ctrl.fontFamily.value == ReaderFontFamily.serif
-                      ? GoogleFonts.merriweather(
-                          fontSize: ctrl.fontSize.value,
-                          height: ctrl.lineHeight.value,
+                  textDirection: isUrdu ? TextDirection.rtl : TextDirection.ltr,
+                  textAlign: isUrdu ? TextAlign.right : TextAlign.left,
+                  style: isUrdu
+                      ? GoogleFonts.notoNastaliqUrdu(
+                          fontSize: ctrl.fontSize.value + 2,
+                          height: 2.1,
                           color: theme.textColor,
                         )
-                      : GoogleFonts.plusJakartaSans(
-                          fontSize: ctrl.fontSize.value,
-                          height: ctrl.lineHeight.value,
-                          color: theme.textColor,
-                        ),
+                      : (ctrl.fontFamily.value == ReaderFontFamily.serif
+                          ? GoogleFonts.merriweather(
+                              fontSize: ctrl.fontSize.value,
+                              height: ctrl.lineHeight.value,
+                              color: theme.textColor,
+                            )
+                          : GoogleFonts.plusJakartaSans(
+                              fontSize: ctrl.fontSize.value,
+                              height: ctrl.lineHeight.value,
+                              color: theme.textColor,
+                            )),
                 ),
               ),
             );
@@ -367,39 +429,14 @@ class EpisodeReaderPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    ClipRRect(
+                    AppAdaptiveImage(
+                      url: imageUrl,
+                      fit: BoxFit.cover,
                       borderRadius: BorderRadius.circular(AppRadii.m),
-                      child: imageUrl.startsWith('http://') || imageUrl.startsWith('https://')
-                          ? Image.network(
-                              imageUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                height: 180,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: theme.textColor.withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(AppRadii.m),
-                                ),
-                                alignment: Alignment.center,
-                                child: Icon(Icons.broken_image_rounded, color: theme.textColor.withValues(alpha: 0.4)),
-                              ),
-                            )
-                          : Image.file(
-                              File(imageUrl),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                height: 180,
-                                width: double.infinity,
-                                decoration: BoxDecoration(
-                                  color: theme.textColor.withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(AppRadii.m),
-                                ),
-                                alignment: Alignment.center,
-                                child: Icon(Icons.broken_image_rounded, color: theme.textColor.withValues(alpha: 0.4)),
-                              ),
-                            ),
+                      width: double.infinity,
                     ),
-                    if (block.caption != null && block.caption!.trim().isNotEmpty) ...[
+                    if (block.caption != null &&
+                        block.caption!.trim().isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         block.caption!,
@@ -426,11 +463,15 @@ class EpisodeReaderPage extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: AppSpacing.l),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadii.m),
-                  border: Border.all(color: theme.textColor.withValues(alpha: 0.15)),
+                  border: Border.all(
+                    color: theme.textColor.withValues(alpha: 0.15),
+                  ),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadii.m),
-                  child: pdfUrl.startsWith('http://') || pdfUrl.startsWith('https://')
+                  child:
+                      pdfUrl.startsWith('http://') ||
+                          pdfUrl.startsWith('https://')
                       ? SfPdfViewer.network(pdfUrl)
                       : SfPdfViewer.file(File(pdfUrl)),
                 ),
@@ -454,4 +495,3 @@ class EpisodeReaderPage extends StatelessWidget {
     return widgets;
   }
 }
-

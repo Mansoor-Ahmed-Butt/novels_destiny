@@ -58,19 +58,39 @@ class EpisodeEntity {
   bool get isPublished => status == EpisodeStatus.published;
 
   List<ContentBlockEntity> get effectiveBlocks {
-    if (blocks.isNotEmpty) return blocks;
-    if (content.isNotEmpty) {
+    if (blocks.isEmpty) {
+      if (content.trim().isNotEmpty) {
+        return [
+          ContentBlockEntity(
+            id: '${id}_block_1',
+            episodeId: id,
+            type: ContentBlockType.text,
+            order: 1,
+            content: content.trim(),
+          ),
+        ];
+      }
+      return const [];
+    }
+
+    final hasValidTextBlock = blocks.any(
+      (b) => b.type == ContentBlockType.text && b.content.trim().isNotEmpty,
+    );
+
+    if (!hasValidTextBlock && content.trim().isNotEmpty) {
       return [
         ContentBlockEntity(
-          id: '${id}_block_1',
+          id: '${id}_block_content',
           episodeId: id,
           type: ContentBlockType.text,
           order: 1,
-          content: content,
+          content: content.trim(),
         ),
+        ...blocks.map((b) => b.copyWith(order: b.order + 1)),
       ];
     }
-    return const [];
+
+    return blocks;
   }
 
   EpisodeEntity copyWith({

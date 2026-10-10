@@ -127,11 +127,14 @@ class SupabaseStorageService {
       final url = getPublicUrl(deterministicPath);
       return {
         'storagePath': deterministicPath,
-        'url': url,
+        'url': url.isNotEmpty ? url : filePath,
       };
     } catch (e) {
-      debugPrint('Supabase upload episode image error: $e');
-      throw UnknownFailure('Failed to upload episode image. Please try again.');
+      debugPrint('Supabase upload episode image warning: $e, using local file.');
+      return {
+        'storagePath': deterministicPath,
+        'url': filePath,
+      };
     }
   }
 

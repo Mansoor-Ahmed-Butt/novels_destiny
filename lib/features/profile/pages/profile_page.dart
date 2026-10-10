@@ -7,7 +7,6 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_text_field.dart';
 import '../../../core/responsive/breakpoints.dart';
-import '../../../domain/entities/user_entity.dart';
 import '../controllers/profile_controller.dart';
 import '../../auth/controllers/auth_controller.dart';
 

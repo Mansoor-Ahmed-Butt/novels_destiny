@@ -32,7 +32,7 @@ class EpisodeRepositoryImpl implements IEpisodeRepository {
         await _dataSource.saveEpisode(remote);
         return remote;
       }
-      return _dataSource.getEpisodeById(novelId, episodeId);
+      return await _dataSource.getEpisodeById(novelId, episodeId);
     } catch (e) {
       throw UnknownFailure('Failed to fetch chapter: $e');
     }

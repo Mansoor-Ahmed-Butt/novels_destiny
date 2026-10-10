@@ -13,6 +13,6 @@ class AdConstants {
   static const String envAndroidInterstitial = 'ADMOB_ANDROID_INTERSTITIAL_ID';
   static const String envIosInterstitial = 'ADMOB_IOS_INTERSTITIAL_ID';
 
-  /// Minimum time between full-screen interstitials (AdMob UX / policy friendly).
-  static const Duration interstitialCooldown = Duration(seconds: 90);
+  /// Cooldown between full-screen interstitials (set to zero to show on first and next episodes as requested).
+  static const Duration interstitialCooldown = Duration.zero;
 }

@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../app/theme/app_theme.dart';
@@ -10,6 +9,7 @@ import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_states.dart';
 import '../../../core/widgets/app_confirm_dialog.dart';
 import '../../../core/responsive/breakpoints.dart';
+import '../../../core/widgets/app_adaptive_image.dart';
 import '../controllers/novel_editor_controller.dart';
 
 class NovelEditorPage extends StatefulWidget {
@@ -885,57 +885,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
   }
 
   Widget _buildImageThumbnail(String imgUrl) {
-    if (imgUrl.trim().isEmpty) {
-      return Container(
-        color: AppColors.surface,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_rounded,
-          size: 24,
-          color: AppColors.textTertiary,
-        ),
-      );
-    }
-    if (imgUrl.startsWith('http://') || imgUrl.startsWith('https://')) {
-      return Image.network(
-        imgUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => Container(
-          color: AppColors.surface,
-          alignment: Alignment.center,
-          child: const Icon(
-            Icons.broken_image_rounded,
-            size: 24,
-            color: AppColors.textTertiary,
-          ),
-        ),
-      );
-    } else {
-      final file = File(imgUrl);
-      if (file.existsSync()) {
-        return Image.file(
-          file,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
-            color: AppColors.surface,
-            alignment: Alignment.center,
-            child: const Icon(
-              Icons.broken_image_rounded,
-              size: 24,
-              color: AppColors.textTertiary,
-            ),
-          ),
-        );
-      }
-      return Container(
-        color: AppColors.surface,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.broken_image_rounded,
-          size: 24,
-          color: AppColors.textTertiary,
-        ),
-      );
-    }
+    return AppAdaptiveImage(
+      url: imgUrl,
+      fit: BoxFit.cover,
+    );
   }
 }

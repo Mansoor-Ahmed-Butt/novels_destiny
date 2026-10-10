@@ -7,7 +7,10 @@ import '../auth/controllers/auth_controller.dart';
 import '../home/pages/home_page.dart';
 import '../library/pages/library_page.dart';
 import '../writer_dashboard/pages/writer_dashboard_page.dart';
+import '../writer_dashboard/controllers/writer_dashboard_controller.dart';
 import '../admin_dashboard/pages/admin_dashboard_page.dart';
+import '../admin_dashboard/controllers/admin_dashboard_controller.dart';
+import '../library/controllers/library_controller.dart';
 import '../profile/pages/profile_page.dart';
 
 class MainShellController extends GetxController {
@@ -29,13 +32,37 @@ class MainShellController extends GetxController {
     selectedIndex.value = index;
   }
 
+  void onTabSelected(int index, List<NavItem> navItems) {
+    selectedIndex.value = index;
+    if (index >= 0 && index < navItems.length) {
+      final route = navItems[index].route;
+      _triggerTabRefresh(route);
+    }
+  }
+
+  void _triggerTabRefresh(String route) {
+    if (route == '/writer' && Get.isRegistered<WriterDashboardController>()) {
+      Get.find<WriterDashboardController>().loadDashboard();
+    } else if (route == '/admin' && Get.isRegistered<AdminDashboardController>()) {
+      Get.find<AdminDashboardController>().loadDashboard();
+    } else if (route == '/library' && Get.isRegistered<LibraryController>()) {
+      Get.find<LibraryController>().loadLibrary();
+    }
+  }
+
   void setInitialTabForRole(UserRole role) {
     switch (role) {
       case UserRole.admin:
         selectedIndex.value = 3; // Admin Dashboard
+        if (Get.isRegistered<AdminDashboardController>()) {
+          Get.find<AdminDashboardController>().loadDashboard();
+        }
         break;
       case UserRole.writer:
         selectedIndex.value = 2; // Writer Studio
+        if (Get.isRegistered<WriterDashboardController>()) {
+          Get.find<WriterDashboardController>().loadDashboard();
+        }
         break;
       case UserRole.reader:
         selectedIndex.value = 0; // Discover
@@ -111,7 +138,8 @@ class MainShellPage extends StatelessWidget {
 
       return ResponsiveNavigationShell(
         currentIndex: currentIndex,
-        onNavigationChanged: shellController.changeIndex,
+        onNavigationChanged: (idx) =>
+            shellController.onTabSelected(idx, navItems),
         navItems: navItems,
         child: IndexedStack(
           index: currentIndex,
