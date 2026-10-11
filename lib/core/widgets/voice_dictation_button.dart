@@ -16,7 +16,7 @@ class VoiceDictationButton extends StatefulWidget {
     super.key,
     required this.controller,
     this.label,
-    this.tooltip = 'Voice Dictation (Speech to Text)',
+    this.tooltip,
     this.showLanguageSelector = true,
     this.initialLanguage = DictationLanguage.english,
     this.onLanguageChanged,
@@ -91,10 +91,15 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
     _baseTextBeforeSession = widget.controller.text;
     _confirmedSpeechInSession = '';
 
-    await _speechService.startListening(
+    final result = await _speechService.startListeningDetailed(
       language: lang,
       onResult: (words, isFinal) => _handleSpeechResult(words, isFinal),
     );
+
+    if (!result.success) {
+      setState(() => _isListening = false);
+      _showVoiceUnavailableNotice(result);
+    }
   }
 
   void _handleSpeechResult(String words, bool isFinal) {
@@ -147,23 +152,51 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
     _baseTextBeforeSession = widget.controller.text;
     _confirmedSpeechInSession = '';
 
-    final started = await _speechService.startListening(
+    final result = await _speechService.startListeningDetailed(
       language: _selectedLanguage,
       onResult: (words, isFinal) => _handleSpeechResult(words, isFinal),
     );
 
-    if (started) {
+    if (result.success) {
       if (mounted) {
         setState(() => _isListening = true);
       }
     } else {
+      _showVoiceUnavailableNotice(result);
+    }
+  }
+
+  void _showVoiceUnavailableNotice(SpeechStartResult result) {
+    if (!mounted) return;
+
+    if (_speechService.isWindows && _selectedLanguage == DictationLanguage.urdu) {
+      // Friendly dialog explaining Urdu voice recognition on Windows
+      Get.defaultDialog(
+        title: 'voice_unavailable_title'.tr,
+        titleStyle: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w700),
+        middleText: result.detailedHelp ??
+            'voice_windows_urdu_note'.tr,
+        middleTextStyle: AppTextStyles.bodyMedium,
+        backgroundColor: AppColors.background,
+        radius: AppRadii.m,
+        textConfirm: 'Switch to English',
+        confirmTextColor: AppColors.textInverse,
+        buttonColor: AppColors.primary,
+        onConfirm: () {
+          Get.back();
+          _onSelectLanguage(DictationLanguage.english);
+        },
+        textCancel: 'close'.tr,
+        cancelTextColor: AppColors.textSecondary,
+      );
+    } else {
       Get.snackbar(
-        'Voice Input Unavailable',
-        'Microphone permission is required or speech recognition service is not available on this device.',
+        'voice_unavailable_title'.tr,
+        result.message ?? 'voice_unavailable_msg'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: AppColors.surface,
         colorText: AppColors.textPrimary,
-        duration: const Duration(seconds: 4),
+        duration: const Duration(seconds: 5),
       );
     }
   }
@@ -193,8 +226,15 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
     String tooltip,
   ) {
     final isSelected = _selectedLanguage == lang;
+    final isSupportedOnWindows =
+        !_speechService.isWindows || lang == DictationLanguage.english;
+
     return Tooltip(
-      message: 'Write via voice in $tooltip',
+      message: isSupportedOnWindows
+          ? (lang == DictationLanguage.urdu
+              ? 'write_in_urdu'.tr
+              : 'write_in_english'.tr)
+          : 'Urdu voice input is available on mobile (Android/iOS)',
       child: InkWell(
         onTap: () => _onSelectLanguage(lang),
         borderRadius: BorderRadius.circular(AppRadii.pill),
@@ -276,10 +316,10 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
                 Flexible(
                   child: Text(
                     _isListening
-                        ? 'Listen(${_selectedLanguage.nativeName})'
+                        ? '${'listen_voice'.tr} (${_selectedLanguage.nativeName})'
                         : (widget.label != null
-                              ? '${widget.label!} (${_selectedLanguage.nativeName})'
-                              : 'Voice (${_selectedLanguage.nativeName})'),
+                            ? '${widget.label!} (${_selectedLanguage.nativeName})'
+                            : '${'voice_input'.tr} (${_selectedLanguage.nativeName})'),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
                     style: AppTextStyles.labelSmall.copyWith(

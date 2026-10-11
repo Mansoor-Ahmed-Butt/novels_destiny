@@ -28,8 +28,21 @@ enum DictationLanguage {
   });
 }
 
+class SpeechStartResult {
+  final bool success;
+  final String? message;
+  final String? detailedHelp;
+
+  const SpeechStartResult({
+    required this.success,
+    this.message,
+    this.detailedHelp,
+  });
+}
+
 class SpeechRecognitionService {
-  static final SpeechRecognitionService _instance = SpeechRecognitionService._internal();
+  static final SpeechRecognitionService _instance =
+      SpeechRecognitionService._internal();
   factory SpeechRecognitionService() => _instance;
   SpeechRecognitionService._internal();
 
@@ -41,16 +54,33 @@ class SpeechRecognitionService {
   bool get isListening => _speech.isListening;
   bool get isAvailable => _isAvailable;
 
+  bool get isWindows =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
+
+  bool isLanguageSupportedOnPlatform(DictationLanguage language) {
+    if (isWindows) {
+      // Windows SAPI natively supports English (en-US, en-GB).
+      // Urdu is not supported by native Windows Speech API.
+      return language == DictationLanguage.english;
+    }
+    // Android and iOS mobile devices support both English and Urdu out of the box.
+    return true;
+  }
+
   void setStatusListener(ValueChanged<String>? listener) {
     _statusListener = listener;
   }
 
-  Future<bool> initialize() async {
-    if (_isInitialized) return _isAvailable;
+  Future<bool> initialize({bool forceRetry = false}) async {
+    if (_isInitialized && _isAvailable && !forceRetry) return _isAvailable;
+
     try {
       _isAvailable = await _speech.initialize(
+        debugLogging: kDebugMode,
         onError: (err) {
-          debugPrint('SpeechRecognition error: ${err.errorMsg} (permanent: ${err.permanent})');
+          debugPrint(
+            'SpeechRecognition error: ${err.errorMsg} (permanent: ${err.permanent})',
+          );
         },
         onStatus: (status) {
           debugPrint('SpeechRecognition status: $status');
@@ -60,7 +90,7 @@ class SpeechRecognitionService {
       _isInitialized = true;
       return _isAvailable;
     } catch (e) {
-      debugPrint('SpeechRecognition init error: $e');
+      debugPrint('SpeechRecognition init exception: $e');
       _isInitialized = true;
       _isAvailable = false;
       return false;
@@ -77,7 +107,8 @@ class SpeechRecognitionService {
       // Look for exact code match (e.g. 'ur_PK', 'ur-PK', or 'en_US', 'en-US')
       for (final l in locales) {
         final id = l.localeId.toLowerCase().replaceAll('-', '_');
-        final target = language.defaultLocale.toLowerCase().replaceAll('-', '_');
+        final target =
+            language.defaultLocale.toLowerCase().replaceAll('-', '_');
         if (id == target) {
           return l.localeId;
         }
@@ -97,19 +128,44 @@ class SpeechRecognitionService {
     }
   }
 
-  Future<bool> startListening({
+  Future<SpeechStartResult> startListeningDetailed({
     required Function(String recognizedWords, bool isFinal) onResult,
     DictationLanguage language = DictationLanguage.english,
     VoidCallback? onListeningStopped,
   }) async {
+    // 1. Detect unsupported language on Windows
+    if (isWindows && language == DictationLanguage.urdu) {
+      return const SpeechStartResult(
+        success: false,
+        message: 'Urdu voice dictation is not supported on Windows native API.',
+        detailedHelp:
+            'Windows SAPI speech recognition only supports English. For Urdu speech-to-text, please use our mobile app (Android or iOS). On Windows, you can type directly in Urdu or dictate in English.',
+      );
+    }
+
+    // 2. Initialize recognition engine
     try {
       final available = await initialize();
       if (!available) {
-        return false;
+        if (isWindows) {
+          return const SpeechStartResult(
+            success: false,
+            message: 'Windows Speech Recognition is unavailable.',
+            detailedHelp:
+                'Please verify:\n1. A microphone is connected and set as default recording device.\n2. Windows Settings > Privacy & security > Microphone: "Let desktop apps access your microphone" is turned ON.\n3. Windows Settings > Time & Language > Speech recognition package is installed.',
+          );
+        }
+        return const SpeechStartResult(
+          success: false,
+          message:
+              'Microphone permission is required or speech recognition service is not available on this device.',
+        );
       }
 
       final resolvedLocale = await resolveLocaleId(language);
-      debugPrint('SpeechRecognition startListening with locale: $resolvedLocale for ${language.name}');
+      debugPrint(
+        'SpeechRecognition startListening with locale: $resolvedLocale for ${language.name}',
+      );
 
       await _speech.listen(
         onResult: (result) {
@@ -124,11 +180,27 @@ class SpeechRecognitionService {
           listenMode: stt.ListenMode.dictation,
         ),
       );
-      return true;
+      return const SpeechStartResult(success: true);
     } catch (e) {
       debugPrint('SpeechRecognition startListening error: $e');
-      return false;
+      return SpeechStartResult(
+        success: false,
+        message: 'Failed to start speech recognition: $e',
+      );
     }
+  }
+
+  Future<bool> startListening({
+    required Function(String recognizedWords, bool isFinal) onResult,
+    DictationLanguage language = DictationLanguage.english,
+    VoidCallback? onListeningStopped,
+  }) async {
+    final result = await startListeningDetailed(
+      onResult: onResult,
+      language: language,
+      onListeningStopped: onListeningStopped,
+    );
+    return result.success;
   }
 
   Future<void> stopListening() async {

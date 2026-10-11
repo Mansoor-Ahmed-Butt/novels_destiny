@@ -1,0 +1,303 @@
+import 'package:get/get.dart';
+
+class AppTranslations extends Translations {
+  @override
+  Map<String, Map<String, String>> get keys => {
+        'en_US': _enUS,
+        'ur_PK': _urPK,
+      };
+
+  static const Map<String, String> _enUS = {
+    // App identity
+    'app_name': 'Novels Destiny',
+
+    // Navigation Items
+    'nav_discover': 'Discover',
+    'nav_library': 'Library',
+    'nav_studio': 'Studio',
+    'nav_admin': 'Admin',
+    'nav_profile': 'Profile',
+
+    // Language selector
+    'language_settings': 'Language Settings',
+    'app_language': 'App Language',
+    'app_language_subtitle': 'Choose English or Urdu as your interface language',
+    'language_english': 'English (Default)',
+    'language_urdu': 'اردو (Urdu)',
+    'language_switched_to_urdu': 'Language changed to Urdu successfully.',
+    'language_switched_to_english': 'Language changed to English successfully.',
+
+    // Common Buttons & Actions
+    'save': 'Save',
+    'save_changes': 'Save Changes',
+    'cancel': 'Cancel',
+    'edit': 'Edit',
+    'delete': 'Delete',
+    'publish': 'Publish',
+    'save_draft': 'Save Draft',
+    'confirm': 'Confirm',
+    'back': 'Back',
+    'close': 'Close',
+    'done': 'Done',
+    'search': 'Search',
+    'filter': 'Filter',
+    'retry': 'Retry',
+    'loading': 'Loading...',
+    'success': 'Success',
+    'error': 'Error',
+    'warning': 'Warning',
+    'info': 'Information',
+
+    // Profile Page
+    'account_profile': 'Account Profile',
+    'account_profile_subtitle': 'Manage your credentials, bio, and active workspace persona',
+    'display_name': 'Display Name',
+    'author_reader_bio': 'Author / Reader Bio',
+    'edit_profile': 'Edit Profile',
+    'sign_out': 'Sign Out',
+    'sign_out_of_account': 'Sign Out of Account',
+    'profile_updated': 'Profile Updated',
+    'profile_updated_message': 'Your profile details have been saved.',
+    'role_switched': 'Role Switched',
+    'active_workspace_updated': 'Active workspace updated to @role.',
+    'role_reader': 'Reader',
+    'role_writer': 'Writer',
+    'role_admin': 'Admin',
+    'active_role_badge': 'Active Role',
+    'system_role': 'System Role',
+
+    // Home / Discover
+    'discover_title': 'Discover Novels',
+    'discover_subtitle': 'Immerse yourself in breathtaking tales and original stories',
+    'search_novels_hint': 'Search novels, authors, or genres...',
+    'featured_novels': 'Featured Stories',
+    'continue_reading': 'Continue Reading',
+    'top_rated_novels': 'Top Rated',
+    'trending_novels': 'Trending Now',
+    'latest_episodes': 'Latest Releases',
+    'all_novels': 'All Novels',
+    'no_novels_found': 'No novels found',
+    'explore_genres': 'Explore Genres',
+    'episodes_count': '@count Episodes',
+    'views_count': '@count Views',
+    'likes_count': '@count Likes',
+    'rating': 'Rating',
+    'read_now': 'Read Now',
+    'start_reading': 'Start Reading',
+
+    // Library
+    'my_library': 'My Library',
+    'library_subtitle': 'Keep track of your bookmarks, reading progress, and favorites',
+    'tab_saved': 'Saved',
+    'tab_history': 'History',
+    'tab_favorites': 'Favorites',
+    'empty_library_title': 'Your library is empty',
+    'empty_library_desc': 'Discover exciting stories and save them here for easy access.',
+    'browse_novels': 'Browse Novels',
+
+    // Writer Dashboard / Studio
+    'writer_studio': 'Writer Studio',
+    'writer_studio_subtitle': 'Write, manage episodes, track analytics and grow your readership',
+    'my_novels': 'My Novels',
+    'create_new_novel': 'Create New Novel',
+    'total_reads': 'Total Reads',
+    'total_followers': 'Total Followers',
+    'published_novels': 'Published Novels',
+    'draft_novels': 'Draft Novels',
+    'episodes': 'Episodes',
+    'add_episode': 'Add Episode',
+    'novel_status': 'Status',
+    'status_published': 'Published',
+    'status_draft': 'Draft',
+    'status_archived': 'Archived',
+
+    // Novel & Episode Editor
+    'novel_editor': 'Novel Editor',
+    'novel_details': 'Novel Details',
+    'novel_title': 'Novel Title',
+    'synopsis': 'Synopsis / Summary',
+    'select_genre': 'Select Genre',
+    'cover_image': 'Cover Image',
+    'upload_cover': 'Upload Cover',
+    'change_cover': 'Change Cover',
+    'episode_editor': 'Episode Editor',
+    'episode_title': 'Episode Title',
+    'episode_content': 'Episode Content',
+    'word_count': 'Word Count: @count',
+    'voice_dictation': 'Voice Dictation (Speech to Text)',
+    'voice_input': 'Voice',
+    'listen_voice': 'Listen',
+    'write_in_urdu': 'Write via voice in Urdu',
+    'write_in_english': 'Write via voice in English',
+
+    // Speech & Voice Feedback
+    'voice_unavailable_title': 'Voice Input Unavailable',
+    'voice_unavailable_msg': 'Microphone permission or speech recognition is not available on this device.',
+    'voice_windows_urdu_note': 'Windows native speech recognition only supports English. For voice dictation in Urdu, please use our mobile app (Android / iOS). You can still type directly in Urdu here.',
+    'voice_windows_mic_check': 'Please ensure Windows Speech Recognition is enabled and your microphone is plugged in under Windows Settings.',
+
+    // Admin Dashboard
+    'admin_dashboard': 'Admin Dashboard',
+    'admin_dashboard_subtitle': 'Oversee content moderation, writers, system health, and approvals',
+    'platform_overview': 'Platform Overview',
+    'pending_moderation': 'Pending Moderation',
+    'approved': 'Approved',
+    'rejected': 'Rejected',
+    'approve': 'Approve',
+    'reject': 'Reject',
+
+    // Reader Screen
+    'reader_chapter': 'Chapter',
+    'previous_episode': 'Previous Episode',
+    'next_episode': 'Next Episode',
+    'font_size': 'Font Size',
+    'reading_theme': 'Theme',
+  };
+
+  static const Map<String, String> _urPK = {
+    // App identity
+    'app_name': 'ناولز ڈیسٹینی',
+
+    // Navigation Items
+    'nav_discover': 'دریافت کریں',
+    'nav_library': 'لائبریری',
+    'nav_studio': 'اسٹوڈیو',
+    'nav_admin': 'ایڈمن',
+    'nav_profile': 'پروفائل',
+
+    // Language selector
+    'language_settings': 'زبان کی ترتیبات',
+    'app_language': 'ایپ کی زبان',
+    'app_language_subtitle': 'اپنی ایپ کی زبان انگریزی یا اردو منتخب کریں',
+    'language_english': 'انگریزی (English)',
+    'language_urdu': 'اردو (Urdu)',
+    'language_switched_to_urdu': 'ایپ کی زبان اردو میں تبدیل کر دی گئی ہے۔',
+    'language_switched_to_english': 'Language changed to English successfully.',
+
+    // Common Buttons & Actions
+    'save': 'محفوظ کریں',
+    'save_changes': 'تبدیلیاں محفوظ کریں',
+    'cancel': 'منسوخ کریں',
+    'edit': 'ترمیم کریں',
+    'delete': 'حذف کریں',
+    'publish': 'شائع کریں',
+    'save_draft': 'مسودہ محفوظ کریں',
+    'confirm': 'تصدیق کریں',
+    'back': 'واپس',
+    'close': 'بند کریں',
+    'done': 'مکمل',
+    'search': 'تلاش کریں',
+    'filter': 'فلٹر',
+    'retry': 'دوبارہ کوشش کریں',
+    'loading': 'لوڈ ہو رہا ہے...',
+    'success': 'کامیاب',
+    'error': 'خرابی',
+    'warning': 'انتباہ',
+    'info': 'معلومات',
+
+    // Profile Page
+    'account_profile': 'اکاؤنٹ پروفائل',
+    'account_profile_subtitle': 'اپنے کوائف، تعارف اور فعال ورک اسپیس کا انتظام کریں',
+    'display_name': 'ظاہری نام',
+    'author_reader_bio': 'مصنف / قاری کا تعارف',
+    'edit_profile': 'پروفائل میں ترمیم کریں',
+    'sign_out': 'لاگ آؤٹ',
+    'sign_out_of_account': 'اکاؤنٹ سے لاگ آؤٹ کریں',
+    'profile_updated': 'پروفائل اپ ڈیٹ ہو گئی',
+    'profile_updated_message': 'آپ کے پروفائل کی تفصیلات محفوظ ہو چکی ہیں۔',
+    'role_switched': 'کردار تبدیل ہو گیا',
+    'active_workspace_updated': 'فعال ورک اسپیس @role میں تبدیل ہو گئی ہے۔',
+    'role_reader': 'قاری',
+    'role_writer': 'مصنف',
+    'role_admin': 'ایڈمن',
+    'active_role_badge': 'فعال کردار',
+    'system_role': 'سسٹم کا کردار',
+
+    // Home / Discover
+    'discover_title': 'ناولز دریافت کریں',
+    'discover_subtitle': 'دلچسپ داستانوں اور منفرد کہانیوں کی دنیا میں قدم رکھیں',
+    'search_novels_hint': 'ناول، مصنف یا صنف تلاش کریں...',
+    'featured_novels': 'نمایاں کہانیاں',
+    'continue_reading': 'پڑھنا جاری رکھیں',
+    'top_rated_novels': 'بہترین ریٹنگ والے ناولز',
+    'trending_novels': 'مقبول ترین ناولز',
+    'latest_episodes': 'تازہ ترین اقساط',
+    'all_novels': 'تمام ناولز',
+    'no_novels_found': 'کوئی ناول نہیں ملا',
+    'explore_genres': 'اصناف دیکھیں',
+    'episodes_count': '@count اقساط',
+    'views_count': '@count مشاہدات',
+    'likes_count': '@count پسندیدگیاں',
+    'rating': 'ریٹنگ',
+    'read_now': 'ابھی پڑھیں',
+    'start_reading': 'پڑھنا شروع کریں',
+
+    // Library
+    'my_library': 'میری لائبریری',
+    'library_subtitle': 'اپنے پسندیدہ ناولز اور پڑھنے کی تاریخ کا ریکارڈ رکھیں',
+    'tab_saved': 'محفوظ شدہ',
+    'tab_history': 'تاریخچہ',
+    'tab_favorites': 'پسندیدہ',
+    'empty_library_title': 'آپ کی لائبریری خالی ہے',
+    'empty_library_desc': 'شاندار کہانیاں دریافت کریں اور انہیں یہاں محفوظ کریں۔',
+    'browse_novels': 'ناولز تلاش کریں',
+
+    // Writer Dashboard / Studio
+    'writer_studio': 'رائٹر اسٹوڈیو',
+    'writer_studio_subtitle': 'ناولز لکھیں، اقساط کا انتظام کریں اور قارئین تک پہنچیں',
+    'my_novels': 'میرے ناولز',
+    'create_new_novel': 'نیا ناول لکھیں',
+    'total_reads': 'کل مشاہدات',
+    'total_followers': 'کل فالوورز',
+    'published_novels': 'شائع شدہ ناولز',
+    'draft_novels': 'غیر شائع شدہ مسودات',
+    'episodes': 'اقساط',
+    'add_episode': 'نئی قسط شامل کریں',
+    'novel_status': 'حیثیت',
+    'status_published': 'شائع شدہ',
+    'status_draft': 'مسودہ',
+    'status_archived': 'محفوظ شدہ',
+
+    // Novel & Episode Editor
+    'novel_editor': 'ناول ایڈیٹر',
+    'novel_details': 'ناول کی تفصیلات',
+    'novel_title': 'ناول کا عنوان',
+    'synopsis': 'خلاصہ / کہانی کا تعارف',
+    'select_genre': 'صنف منتخب کریں',
+    'cover_image': 'سرورق کی تصویر',
+    'upload_cover': 'سرورق اپ لوڈ کریں',
+    'change_cover': 'سرورق تبدیل کریں',
+    'episode_editor': 'قسط ایڈیٹر',
+    'episode_title': 'قسط کا عنوان',
+    'episode_content': 'قسط کا مواد',
+    'word_count': 'الفاظ کی تعداد: @count',
+    'voice_dictation': 'صوتی املا (بول کر لکھیں)',
+    'voice_input': 'آواز',
+    'listen_voice': 'سن رہا ہے',
+    'write_in_urdu': 'اردو میں بول کر لکھیں',
+    'write_in_english': 'انگریزی میں بول کر لکھیں',
+
+    // Speech & Voice Feedback
+    'voice_unavailable_title': 'آواز سے ان پٹ دستیاب نہیں',
+    'voice_unavailable_msg': 'مائیکروفون کی اجازت یا آواز کی شناخت اس ڈیوائس پر دستیاب نہیں ہے۔',
+    'voice_windows_urdu_note': 'ونڈوز پر آواز کی شناخت صرف انگریزی کی حمایت کرتی ہے۔ اردو میں بول کر لکھنے کے لیے موبائل ایپ (اینڈرائیڈ / آئی او ایس) استعمال کریں۔ آپ یہاں براہ راست اردو میں ٹائپ کر سکتے ہیں۔',
+    'voice_windows_mic_check': 'براہ کرم یقینی بنائیں کہ ونڈوز سیٹنگز میں مائیکروفون فعال اور منسلک ہے۔',
+
+    // Admin Dashboard
+    'admin_dashboard': 'ایڈمن ڈیش بورڈ',
+    'admin_dashboard_subtitle': 'مواد کی نگرانی، مصنفین، سسٹم کی کارکردگی اور منظوریوں کا جائزہ لیں',
+    'platform_overview': 'پلیٹ فارم کا جائزہ',
+    'pending_moderation': 'زیر التواء جائزے',
+    'approved': 'منظور شدہ',
+    'rejected': 'مسترد شدہ',
+    'approve': 'منظور کریں',
+    'reject': 'مسترد کریں',
+
+    // Reader Screen
+    'reader_chapter': 'باب',
+    'previous_episode': 'پچھلی قسط',
+    'next_episode': 'اگلی قسط',
+    'font_size': 'فونٹ کا سائز',
+    'reading_theme': 'تھیم',
+  };
+}

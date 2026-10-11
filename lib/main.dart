@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:get/get.dart';
 import 'core/services/supabase_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/ad_service.dart';
+import 'core/localization/localization_service.dart';
 import 'app/app.dart';
 import 'firebase_options.dart';
 
@@ -27,6 +29,11 @@ Future<void> main() async {
   // 4. Initialize Google Mobile Ads
   debugPrint('App: Initializing Mobile Ads...');
   await AdService().init();
+
+  // 5. Initialize Localization Service
+  debugPrint('App: Initializing Localization...');
+  final localizationService = await LocalizationService.init();
+  Get.put<LocalizationService>(localizationService, permanent: true);
 
   runApp(const NovelsDestinyApp());
 

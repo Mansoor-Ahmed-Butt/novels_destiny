@@ -3,16 +3,22 @@ import 'package:get/get.dart';
 import '../../../domain/entities/user_entity.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../app/routes/app_routes.dart';
+import '../../../core/localization/localization_service.dart';
 
 class ProfileController extends GetxController {
   final AuthController _authController;
 
   ProfileController(this._authController);
 
+  LocalizationService get _localizationService => LocalizationService.to;
+
   final TextEditingController nameController = TextEditingController();
   final TextEditingController bioController = TextEditingController();
 
   final RxBool isEditing = false.obs;
+
+  Rx<Locale> get currentLocale => _localizationService.rxLocale;
+  bool get isUrdu => _localizationService.isUrdu;
 
   @override
   void onInit() {
@@ -41,12 +47,41 @@ class ProfileController extends GetxController {
       bio: bioController.text.trim(),
     );
     isEditing.value = false;
-    Get.snackbar('Profile Updated', 'Your profile details have been saved.');
+    Get.snackbar(
+      'profile_updated'.tr,
+      'profile_updated_message'.tr,
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   Future<void> switchRole(UserRole newRole) async {
     await _authController.switchRole(newRole);
-    Get.snackbar('Role Switched', 'Active workspace updated to ${newRole.displayName}.');
+    Get.snackbar(
+      'role_switched'.tr,
+      'active_workspace_updated'.trParams({'role': newRole.displayName}),
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
+  Future<void> changeLanguage(Locale locale) async {
+    await _localizationService.changeLocale(locale);
+    final isUrduNow = locale.languageCode == 'ur';
+    Get.snackbar(
+      isUrduNow ? 'زبان تبدیل ہو گئی' : 'Language Changed',
+      isUrduNow
+          ? 'ایپ کی زبان کامیابی سے اردو میں تبدیل کر دی گئی ہے۔'
+          : 'App interface language successfully switched to English.',
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  Future<void> toggleLanguage() async {
+    if (isUrdu) {
+      await changeLanguage(LocalizationService.englishLocale);
+    } else {
+      await changeLanguage(LocalizationService.urduLocale);
+    }
   }
 
   Future<void> signOut() async {

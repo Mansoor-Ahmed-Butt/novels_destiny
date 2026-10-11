@@ -627,7 +627,7 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                           const SizedBox(height: AppSpacing.xs),
                           AppTextField(
                             hint:
-                                'Type or paste your complete story here...\n\nReaders will enjoy seamless reading with customizable fonts, font sizes, line height, and dark/light themes.',
+                                'Type or paste your complete story here...\n\nReaders will enjoy seamless reading',
                             controller: _ctrl.manuscriptController,
                             maxLines: 12,
                           ),

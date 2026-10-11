@@ -145,8 +145,7 @@ class _EpisodeEditorPageState extends State<EpisodeEditorPage> {
                               Expanded(
                                 child: AppTextField(
                                   label: 'Chapter Title',
-                                  hint:
-                                      'e.g. The Awakening of the Starlight Core',
+                                  hint: 'The Awakening of the Starlight Core',
                                   controller: _ctrl.titleController,
                                 ),
                               ),
@@ -263,14 +262,14 @@ class _EpisodeEditorPageState extends State<EpisodeEditorPage> {
                                   ),
                                   label: const Text('Add PDF'),
                                 ),
-                                OutlinedButton.icon(
-                                  onPressed: _ctrl.addAdBlock,
-                                  icon: const Icon(
-                                    Icons.ad_units_outlined,
-                                    size: 18,
-                                  ),
-                                  label: const Text('Add Ad Placement'),
-                                ),
+                                // OutlinedButton.icon(
+                                //   onPressed: _ctrl.addAdBlock,
+                                //   icon: const Icon(
+                                //     Icons.ad_units_outlined,
+                                //     size: 18,
+                                //   ),
+                                //   label: const Text('Add Ad Placement'),
+                                // ),
                               ],
                             ),
                           ),

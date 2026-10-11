@@ -12,6 +12,7 @@ import '../admin_dashboard/pages/admin_dashboard_page.dart';
 import '../admin_dashboard/controllers/admin_dashboard_controller.dart';
 import '../library/controllers/library_controller.dart';
 import '../profile/pages/profile_page.dart';
+import '../../core/localization/localization_service.dart';
 
 class MainShellController extends GetxController {
   final AuthController _authController;
@@ -85,36 +86,41 @@ class MainShellPage extends StatelessWidget {
       final user = authController.currentUser.value;
       final role = user?.role ?? UserRole.reader;
 
+      // React to locale changes as well
+      if (Get.isRegistered<LocalizationService>()) {
+        Get.find<LocalizationService>().rxLocale.value;
+      }
+
       // Build navigation items based on current active user role
       final List<NavItem> navItems = [
-        const NavItem(
-          label: 'Discover',
+        NavItem(
+          label: 'nav_discover'.tr,
           icon: AppIcons.home,
           selectedIcon: AppIcons.homeFilled,
           route: '/home',
         ),
-        const NavItem(
-          label: 'Library',
+        NavItem(
+          label: 'nav_library'.tr,
           icon: AppIcons.library,
           selectedIcon: AppIcons.libraryFilled,
           route: '/library',
         ),
         if (role == UserRole.writer || role == UserRole.admin)
-          const NavItem(
-            label: 'Studio',
+          NavItem(
+            label: 'nav_studio'.tr,
             icon: AppIcons.studio,
             selectedIcon: AppIcons.studioFilled,
             route: '/writer',
           ),
         if (role == UserRole.admin)
-          const NavItem(
-            label: 'Admin',
+          NavItem(
+            label: 'nav_admin'.tr,
             icon: AppIcons.admin,
             selectedIcon: AppIcons.adminFilled,
             route: '/admin',
           ),
-        const NavItem(
-          label: 'Profile',
+        NavItem(
+          label: 'nav_profile'.tr,
           icon: AppIcons.profile,
           selectedIcon: AppIcons.profileFilled,
           route: '/profile',

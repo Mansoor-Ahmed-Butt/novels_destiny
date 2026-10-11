@@ -3,6 +3,7 @@ import '../../core/services/logger_service.dart';
 import '../../core/services/supabase_storage_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/services/ad_service.dart';
+import '../../core/localization/localization_service.dart';
 import '../../data/sources/app_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/repositories/novel_repository_impl.dart';
@@ -37,6 +38,9 @@ class InitialBinding extends Bindings {
     Get.put<SupabaseStorageService>(SupabaseStorageService(), permanent: true);
     Get.put<NotificationService>(NotificationService(), permanent: true);
     Get.put<AdService>(AdService(), permanent: true);
+    if (!Get.isRegistered<LocalizationService>()) {
+      Get.put<LocalizationService>(LocalizationService(), permanent: true);
+    }
 
     // 2. Data Sources
     final dataSource = AppDataSource();
