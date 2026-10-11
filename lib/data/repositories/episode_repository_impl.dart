@@ -6,6 +6,7 @@ import '../sources/app_data_source.dart';
 import '../sources/firestore_data_source.dart';
 import '../models/episode_model.dart';
 import '../../core/errors/failures.dart';
+import '../../core/services/supabase_storage_service.dart';
 
 class EpisodeRepositoryImpl implements IEpisodeRepository {
   final AppDataSource _dataSource;
@@ -92,6 +93,27 @@ class EpisodeRepositoryImpl implements IEpisodeRepository {
   @override
   Future<void> deleteEpisode(String novelId, String episodeId) async {
     try {
+      var ep = await _dataSource.getEpisodeById(novelId, episodeId);
+      ep ??= await _firestore.getEpisode(episodeId);
+
+      final storageService = SupabaseStorageService();
+      if (ep != null) {
+        var blocks = ep.blocks;
+        if (blocks.isEmpty) {
+          blocks = await _firestore.getEpisodeBlocks(episodeId);
+        }
+        for (final block in blocks) {
+          if (block.storagePath != null && block.storagePath!.isNotEmpty) {
+            await storageService.deleteFile(block.storagePath!);
+          } else if (block.url != null && block.url!.isNotEmpty && block.url!.contains('novel-files')) {
+            await storageService.deleteFile(block.url!);
+          }
+        }
+      }
+
+      // Also clean up any files in the episode's dedicated folder
+      await storageService.deleteEpisodeFolder(novelId, episodeId);
+
       await _firestore.deleteEpisode(episodeId);
       await _dataSource.deleteEpisode(novelId, episodeId);
     } catch (e) {

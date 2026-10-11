@@ -319,11 +319,63 @@ class SupabaseStorageService {
   /// Deletes a file from Supabase storage (useful for rollbacks & cleanup)
   Future<void> deleteFile(String storagePath) async {
     final client = _client;
-    if (client == null) return;
+    if (client == null || storagePath.trim().isEmpty) return;
+
+    // Normalize path if a full Supabase URL was passed
+    String cleanPath = storagePath.trim();
+    if (cleanPath.startsWith('http')) {
+      final uri = Uri.tryParse(cleanPath);
+      if (uri != null) {
+        final segments = uri.pathSegments;
+        final idx = segments.indexOf(bucketName);
+        if (idx >= 0 && idx < segments.length - 1) {
+          cleanPath = segments.sublist(idx + 1).join('/');
+        }
+      }
+    }
+
     try {
-      await client.storage.from(bucketName).remove([storagePath]);
+      await client.storage.from(bucketName).remove([cleanPath]);
     } catch (e) {
       debugPrint('Supabase delete file warning: $e');
+    }
+  }
+
+  /// Deletes multiple files from Supabase storage
+  Future<void> deleteFiles(List<String> storagePaths) async {
+    for (final p in storagePaths) {
+      await deleteFile(p);
+    }
+  }
+
+  /// Deletes all files stored under a novel directory (e.g. covers, gallery, PDFs, episode attachments)
+  Future<void> deleteNovelFolder(String novelId) async {
+    final client = _client;
+    if (client == null || novelId.trim().isEmpty) return;
+    try {
+      final list = await client.storage.from(bucketName).list(path: 'novels/$novelId');
+      final paths = list.map((item) => 'novels/$novelId/${item.name}').toList();
+      if (paths.isNotEmpty) {
+        await client.storage.from(bucketName).remove(paths);
+      }
+    } catch (e) {
+      debugPrint('Supabase delete novel folder warning: $e');
+    }
+  }
+
+  /// Deletes all files stored under an episode directory (e.g. attached PDFs, illustrations)
+  Future<void> deleteEpisodeFolder(String novelId, String episodeId) async {
+    final client = _client;
+    if (client == null || novelId.trim().isEmpty || episodeId.trim().isEmpty) return;
+    try {
+      final folderPath = 'novels/$novelId/episodes/$episodeId';
+      final list = await client.storage.from(bucketName).list(path: folderPath);
+      final paths = list.map((item) => '$folderPath/${item.name}').toList();
+      if (paths.isNotEmpty) {
+        await client.storage.from(bucketName).remove(paths);
+      }
+    } catch (e) {
+      debugPrint('Supabase delete episode folder warning: $e');
     }
   }
 

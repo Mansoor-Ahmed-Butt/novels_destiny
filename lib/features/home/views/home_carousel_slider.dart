@@ -282,7 +282,7 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
                               border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
                             ),
                             child: Text(
-                              novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : '— ★',
+                              novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : 'New ★',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700,

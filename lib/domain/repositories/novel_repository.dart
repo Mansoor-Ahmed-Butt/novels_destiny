@@ -18,6 +18,8 @@ abstract class INovelRepository {
   Future<bool> isNovelSaved(String novelId, String userId);
   Future<void> toggleSaveNovel(String novelId, String userId);
   Future<List<NovelEntity>> getSavedNovels(String userId);
+  Future<NovelEntity> rateNovel(String novelId, String userId, double rating);
+  Future<double?> getUserRating(String novelId, String userId);
 
   // Reading progress & downloads
   Future<void> saveReadingProgress(String userId, ReadingProgressEntity progress);

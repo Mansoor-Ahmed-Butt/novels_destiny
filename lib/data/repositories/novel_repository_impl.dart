@@ -7,6 +7,7 @@ import '../sources/firestore_data_source.dart';
 import '../models/novel_model.dart';
 import '../models/reading_progress_model.dart';
 import '../../core/errors/failures.dart';
+import '../../core/services/supabase_storage_service.dart';
 
 class NovelRepositoryImpl implements INovelRepository {
   final AppDataSource _dataSource;
@@ -47,10 +48,23 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<List<NovelEntity>> getNovelsByGenre(String genre) async {
     try {
-      final novels = await _fetchAndCachePublished();
-      return novels
-          .where((n) => n.isPubliclyVisible && n.genreIds.any((g) => g.toLowerCase() == genre.toLowerCase()))
-          .toList();
+      var novels = await _fetchAndCachePublished();
+      if (novels.isEmpty) {
+        novels = await _dataSource.getFeaturedNovels();
+      }
+      final cleanGenre = genre.trim().toLowerCase();
+      return novels.where((n) {
+        if (!n.isPubliclyVisible) return false;
+        final hasGenreId = n.genreIds.any((g) {
+          final cleanG = g.trim().toLowerCase();
+          return cleanG == cleanGenre || cleanG.contains(cleanGenre) || cleanGenre.contains(cleanG);
+        });
+        final hasTag = n.tags.any((t) {
+          final cleanT = t.trim().toLowerCase();
+          return cleanT == cleanGenre || cleanT.contains(cleanGenre) || cleanGenre.contains(cleanT);
+        });
+        return hasGenreId || hasTag;
+      }).toList();
     } catch (e) {
       throw UnknownFailure('Failed to fetch novels for genre $genre: $e');
     }
@@ -138,10 +152,75 @@ class NovelRepositoryImpl implements INovelRepository {
   @override
   Future<void> deleteNovel(String id) async {
     try {
+      // 1. Fetch novel and episodes to identify Supabase files
+      var novel = await _dataSource.getNovelById(id);
+      novel ??= await _firestore.getNovel(id);
+
+      var episodes = await _dataSource.getEpisodesForNovel(id, publishedOnly: false);
+      if (episodes.isEmpty) {
+        episodes = await _firestore.getEpisodesForNovel(id);
+      }
+      final storageService = SupabaseStorageService();
+
+      // 2. Delete all episode PDF and attachment files from Supabase
+      for (final ep in episodes) {
+        var blocks = ep.blocks;
+        if (blocks.isEmpty) {
+          blocks = await _firestore.getEpisodeBlocks(ep.id);
+        }
+        for (final block in blocks) {
+          if (block.storagePath != null && block.storagePath!.isNotEmpty) {
+            await storageService.deleteFile(block.storagePath!);
+          } else if (block.url != null && block.url!.isNotEmpty && block.url!.contains('novel-files')) {
+            await storageService.deleteFile(block.url!);
+          }
+        }
+      }
+
+      // 3. Delete novel PDF and cover from Supabase if present
+      if (novel?.pdfStoragePath != null && novel!.pdfStoragePath!.isNotEmpty) {
+        await storageService.deleteFile(novel.pdfStoragePath!);
+      }
+      if (novel?.coverStoragePath != null && novel!.coverStoragePath!.isNotEmpty) {
+        await storageService.deleteFile(novel.coverStoragePath!);
+      }
+
+      // 4. Clean up any remaining novel folder files in Supabase
+      await storageService.deleteNovelFolder(id);
+
+      // 5. Delete from Firestore and local cache
       await _firestore.deleteNovel(id);
       await _dataSource.deleteNovel(id);
     } catch (e) {
       throw UnknownFailure('Failed to delete novel: $e');
+    }
+  }
+
+  @override
+  Future<NovelEntity> rateNovel(String novelId, String userId, double rating) async {
+    try {
+      final updated = _dataSource.rateNovel(novelId, userId, rating);
+      await _firestore.saveUserRating(
+        novelId: novelId,
+        userId: userId,
+        rating: rating,
+        newAverageRating: updated.rating,
+        newRatingCount: updated.ratingCount,
+      );
+      return updated;
+    } catch (e) {
+      throw UnknownFailure('Failed to submit rating: $e');
+    }
+  }
+
+  @override
+  Future<double?> getUserRating(String novelId, String userId) async {
+    try {
+      final cached = _dataSource.getUserRating(novelId, userId);
+      if (cached != null) return cached;
+      return await _firestore.getUserRating(novelId, userId);
+    } catch (e) {
+      return null;
     }
   }
 

@@ -11,6 +11,9 @@ class PlatformAnalyticsEntity {
   final int openReports;
   final List<DailyMetricPoint> dailyReadsTrend;
   final List<DailyMetricPoint> dailyUsersTrend;
+  final List<NovelRatingMetric> novelRatings;
+  final List<EpisodeRatingMetric> episodeMetrics;
+  final Map<int, int> ratingDistribution; // 1 to 5 star counts
 
   const PlatformAnalyticsEntity({
     required this.totalUsers,
@@ -25,6 +28,43 @@ class PlatformAnalyticsEntity {
     required this.openReports,
     required this.dailyReadsTrend,
     required this.dailyUsersTrend,
+    this.novelRatings = const [],
+    this.episodeMetrics = const [],
+    this.ratingDistribution = const {5: 0, 4: 0, 3: 0, 2: 0, 1: 0},
+  });
+}
+
+class NovelRatingMetric {
+  final String novelId;
+  final String title;
+  final double rating;
+  final int ratingCount;
+  final int totalViews;
+
+  const NovelRatingMetric({
+    required this.novelId,
+    required this.title,
+    required this.rating,
+    required this.ratingCount,
+    required this.totalViews,
+  });
+}
+
+class EpisodeRatingMetric {
+  final String episodeId;
+  final String episodeTitle;
+  final String novelTitle;
+  final int episodeNumber;
+  final int views;
+  final double rating;
+
+  const EpisodeRatingMetric({
+    required this.episodeId,
+    required this.episodeTitle,
+    required this.novelTitle,
+    required this.episodeNumber,
+    required this.views,
+    this.rating = 0.0,
   });
 }
 

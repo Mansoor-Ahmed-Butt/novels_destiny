@@ -65,8 +65,11 @@ class WriterChartView extends StatelessWidget {
                       showTitles: true,
                       reservedSize: 36,
                       getTitlesWidget: (val, meta) {
+                        final label = val >= 1000
+                            ? '${(val / 1000).toStringAsFixed(1)}k'
+                            : '${val.toInt()}';
                         return Text(
-                          '${(val / 1000).toInt()}k',
+                          label,
                           style: AppTextStyles.labelSmall.copyWith(fontSize: 10),
                         );
                       },

@@ -124,10 +124,11 @@ class FirestoreDataSource {
     final col = _novelsCol;
     if (col == null) return [];
     try {
-      final snapshot = await col
-          .where('moderationStatus', isEqualTo: 'approved')
-          .get();
-      return snapshot.docs.map((d) => NovelModel.fromJson(d.data())).toList();
+      final snapshot = await col.get();
+      return snapshot.docs
+          .map((d) => NovelModel.fromJson(d.data()))
+          .where((n) => n.isPubliclyVisible)
+          .toList();
     } catch (e) {
       debugPrint('Firestore getPublishedNovels warning: $e');
       return [];
@@ -182,12 +183,61 @@ class FirestoreDataSource {
 
   Future<void> deleteNovel(String id) async {
     final col = _novelsCol;
+    final epCol = _episodesCol;
     if (col == null) return;
     try {
       await col.doc(id).delete();
+      if (epCol != null) {
+        final snap = await epCol.where('novelId', isEqualTo: id).get();
+        for (final d in snap.docs) {
+          await d.reference.delete();
+        }
+      }
     } catch (e) {
       debugPrint('Firestore deleteNovel warning: $e');
     }
+  }
+
+  Future<void> saveUserRating({
+    required String novelId,
+    required String userId,
+    required double rating,
+    required double newAverageRating,
+    required int newRatingCount,
+  }) async {
+    final fs = _firestore;
+    final novelCol = _novelsCol;
+    if (fs == null) return;
+    try {
+      await fs.collection('novel_ratings').doc('${novelId}_$userId').set({
+        'novelId': novelId,
+        'userId': userId,
+        'rating': rating,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      if (novelCol != null) {
+        await novelCol.doc(novelId).update({
+          'rating': newAverageRating,
+          'ratingCount': newRatingCount,
+        });
+      }
+    } catch (e) {
+      debugPrint('Firestore saveUserRating warning: $e');
+    }
+  }
+
+  Future<double?> getUserRating(String novelId, String userId) async {
+    final fs = _firestore;
+    if (fs == null) return null;
+    try {
+      final doc = await fs.collection('novel_ratings').doc('${novelId}_$userId').get();
+      if (doc.exists) {
+        return (doc.data()?['rating'] as num?)?.toDouble();
+      }
+    } catch (e) {
+      debugPrint('Firestore getUserRating warning: $e');
+    }
+    return null;
   }
 
   Future<void> updateNovelModerationStatus(String id, String status) async {

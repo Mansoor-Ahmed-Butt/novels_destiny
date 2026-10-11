@@ -10,6 +10,7 @@ import '../../../core/widgets/app_states.dart';
 import '../../../core/widgets/app_confirm_dialog.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../../../core/widgets/app_adaptive_image.dart';
+import '../../../core/widgets/voice_dictation_button.dart';
 import '../controllers/novel_editor_controller.dart';
 
 class NovelEditorPage extends StatefulWidget {
@@ -65,33 +66,35 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => PopScope(
-          canPop: !_ctrl.hasUnsavedChanges.value && !_isNavigatingBack,
-          onPopInvokedWithResult: (didPop, _) async {
-            if (didPop) return;
-            if (_isNavigatingBack) return;
-            if (_ctrl.hasUnsavedChanges.value) {
-              await AppConfirmDialog.show(
-                context: context,
-                title: 'Unsaved Novel Changes',
-                message: 'You have unsaved changes. Exit without saving?',
-                confirmLabel: 'Discard Changes',
-                isDestructive: true,
-                onConfirm: _navigateBack,
-              );
-            } else {
-              _navigateBack();
+    return Obx(
+      () => PopScope(
+        canPop: !_ctrl.hasUnsavedChanges.value && !_isNavigatingBack,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          if (_isNavigatingBack) return;
+          if (_ctrl.hasUnsavedChanges.value) {
+            await AppConfirmDialog.show(
+              context: context,
+              title: 'Unsaved Novel Changes',
+              message: 'You have unsaved changes. Exit without saving?',
+              confirmLabel: 'Discard Changes',
+              isDestructive: true,
+              onConfirm: _navigateBack,
+            );
+          } else {
+            _navigateBack();
+          }
+        },
+        child: AppScaffold(
+          body: Obx(() {
+            if (_ctrl.isLoading.value) {
+              return const AppLoadingState(message: 'Loading story details...');
             }
-          },
-          child: AppScaffold(
-            body: Obx(() {
-              if (_ctrl.isLoading.value) {
-                return const AppLoadingState(message: 'Loading story details...');
-              }
-              return _buildForm();
-            }),
-          ),
-        ));
+            return _buildForm();
+          }),
+        ),
+      ),
+    );
   }
 
   Widget _buildForm() {
@@ -122,8 +125,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                   children: [
                     Text(
                       'Story Information',
-                      style: AppTextStyles.titleMedium
-                          .copyWith(fontWeight: FontWeight.w700),
+                      style: AppTextStyles.titleMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.m),
 
@@ -136,8 +140,18 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                     const SizedBox(height: AppSpacing.l),
 
                     // Synopsis / Blurb
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('The Hook', style: AppTextStyles.labelLarge),
+                        VoiceDictationButton(
+                          controller: _ctrl.descriptionController,
+                          label: 'Speak',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
                     AppTextField(
-                      label: 'Synopsis / Blurb',
                       hint:
                           'A captivating summary that hooks readers on the explore page...',
                       controller: _ctrl.descriptionController,
@@ -220,8 +234,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                             children: [
                               Text(
                                 'Cover Artwork (Book Cover)',
-                                style: AppTextStyles.titleMedium
-                                    .copyWith(fontWeight: FontWeight.w700),
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -288,14 +303,14 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     Container(
-                                  width: 48,
-                                  height: 64,
-                                  color: AppColors.surface,
-                                  child: const Icon(
-                                    Icons.image_not_supported,
-                                    size: 20,
-                                  ),
-                                ),
+                                      width: 48,
+                                      height: 64,
+                                      color: AppColors.surface,
+                                      child: const Icon(
+                                        Icons.image_not_supported,
+                                        size: 20,
+                                      ),
+                                    ),
                               ),
                             ),
                           ),
@@ -322,8 +337,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                             children: [
                               Text(
                                 'Novel Illustrations & Gallery',
-                                style: AppTextStyles.titleMedium
-                                    .copyWith(fontWeight: FontWeight.w700),
+                                style: AppTextStyles.titleMedium.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -346,7 +362,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                               color: _ctrl.galleryImages.length >= 5
                                   ? AppColors.warningLight
                                   : AppColors.surface,
-                              borderRadius: BorderRadius.circular(AppRadii.pill),
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.pill,
+                              ),
                               border: Border.all(
                                 color: _ctrl.galleryImages.length >= 5
                                     ? AppColors.warning
@@ -416,10 +434,12 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color:
-                                                Colors.black.withValues(alpha: 0.7),
-                                            borderRadius:
-                                                BorderRadius.circular(4),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.7,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
                                             '#${index + 1}',
@@ -466,8 +486,7 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.surface,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadii.m),
+                                borderRadius: BorderRadius.circular(AppRadii.m),
                                 border: Border.all(
                                   color: AppColors.cardBorder,
                                   style: BorderStyle.solid,
@@ -519,8 +538,8 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                               isUploading
                                   ? 'Uploading Image...'
                                   : (images.length >= 5
-                                      ? 'Maximum 5 Images Reached'
-                                      : 'Add Illustration (${images.length}/5)'),
+                                        ? 'Maximum 5 Images Reached'
+                                        : 'Add Illustration (${images.length}/5)'),
                             ),
                           ),
                         ],
@@ -539,8 +558,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                   children: [
                     Text(
                       'Novel Story Content',
-                      style: AppTextStyles.titleMedium
-                          .copyWith(fontWeight: FontWeight.w700),
+                      style: AppTextStyles.titleMedium.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -591,8 +611,21 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Full Novel Story',
+                                style: AppTextStyles.labelLarge,
+                              ),
+                              VoiceDictationButton(
+                                controller: _ctrl.manuscriptController,
+                                label: 'Speak',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
                           AppTextField(
-                            label: 'Full Novel Manuscript',
                             hint:
                                 'Type or paste your complete story here...\n\nReaders will enjoy seamless reading with customizable fonts, font sizes, line height, and dark/light themes.',
                             controller: _ctrl.manuscriptController,
@@ -648,8 +681,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                     padding: const EdgeInsets.all(10),
                                     decoration: BoxDecoration(
                                       color: AppColors.errorLight,
-                                      borderRadius:
-                                          BorderRadius.circular(AppRadii.s),
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadii.s,
+                                      ),
                                     ),
                                     child: const Icon(
                                       Icons.picture_as_pdf_rounded,
@@ -668,7 +702,8 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                               'Complete Novel.pdf',
                                           style: AppTextStyles.labelLarge
                                               .copyWith(
-                                                  fontWeight: FontWeight.w700),
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -682,12 +717,12 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'Ready for readers via Syncfusion PDF Viewer',
+                                              'Ready for readers ',
                                               style: AppTextStyles.bodySmall
                                                   .copyWith(
-                                                color: AppColors.success,
-                                                fontSize: 11,
-                                              ),
+                                                    color: AppColors.success,
+                                                    fontSize: 11,
+                                                  ),
                                             ),
                                           ],
                                         ),
@@ -703,8 +738,10 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                     onPressed: isUploading
                                         ? null
                                         : _ctrl.pickAndUploadPdf,
-                                    icon: const Icon(Icons.refresh_rounded,
-                                        size: 16),
+                                    icon: const Icon(
+                                      Icons.refresh_rounded,
+                                      size: 16,
+                                    ),
                                     label: const Text('Replace PDF'),
                                   ),
                                   const SizedBox(width: AppSpacing.m),
@@ -717,8 +754,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                     ),
                                     label: Text(
                                       'Remove',
-                                      style: AppTextStyles.labelMedium
-                                          .copyWith(color: AppColors.error),
+                                      style: AppTextStyles.labelMedium.copyWith(
+                                        color: AppColors.error,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -756,8 +794,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                             const SizedBox(height: AppSpacing.m),
                             Text(
                               'Attach Complete Novel PDF',
-                              style: AppTextStyles.titleSmall
-                                  .copyWith(fontWeight: FontWeight.w700),
+                              style: AppTextStyles.titleSmall.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -774,8 +813,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                                   : 'Select & Upload PDF Document',
                               icon: Icons.upload_rounded,
                               isLoading: isUploading,
-                              onPressed:
-                                  isUploading ? null : _ctrl.pickAndUploadPdf,
+                              onPressed: isUploading
+                                  ? null
+                                  : _ctrl.pickAndUploadPdf,
                             ),
                           ],
                         ),
@@ -861,8 +901,9 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
             Icon(
               icon,
               size: 16,
-              color:
-                  isSelected ? AppColors.textInverse : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.textInverse
+                  : AppColors.textSecondary,
             ),
             const SizedBox(width: 6),
             Flexible(
@@ -885,9 +926,6 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
   }
 
   Widget _buildImageThumbnail(String imgUrl) {
-    return AppAdaptiveImage(
-      url: imgUrl,
-      fit: BoxFit.cover,
-    );
+    return AppAdaptiveImage(url: imgUrl, fit: BoxFit.cover);
   }
 }

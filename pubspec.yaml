@@ -63,6 +63,7 @@ dependencies:
   # shimer
   shimmer: ^4.0.0
   shared_preferences: ^2.5.5
+  speech_to_text: ^7.5.0
 
 dev_dependencies:
   flutter_test:

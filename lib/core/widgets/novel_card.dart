@@ -105,7 +105,7 @@ class NovelCard extends StatelessWidget {
                   const Icon(Icons.star_rounded, size: 14, color: Color(0xFFD48828)),
                   const SizedBox(width: 2),
                   Text(
-                    novel.rating.toStringAsFixed(1),
+                    novel.rating > 0 ? novel.rating.toStringAsFixed(1) : 'New',
                     style: AppTextStyles.labelSmall.copyWith(color: AppColors.textPrimary),
                   ),
                 ],
@@ -181,6 +181,16 @@ class NovelCard extends StatelessWidget {
                       '${novel.totalLikes}',
                       style: AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary),
                     ),
+                    const SizedBox(width: AppSpacing.m),
+                    const Icon(Icons.star_rounded, size: 14, color: Color(0xFFD48828)),
+                    const SizedBox(width: 4),
+                    Text(
+                      novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : 'New',
+                      style: AppTextStyles.labelSmall.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -211,7 +221,34 @@ class NovelCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                AppStatusChip.novelStatus(novel.status),
+                Row(
+                  children: [
+                    AppStatusChip.novelStatus(novel.status),
+                    const SizedBox(width: AppSpacing.s),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadii.pill),
+                        border: Border.all(color: AppColors.cardBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFD48828)),
+                          const SizedBox(width: 3),
+                          Text(
+                            novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : 'New',
+                            style: AppTextStyles.labelSmall.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   novel.title,

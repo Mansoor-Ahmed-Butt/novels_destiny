@@ -18,12 +18,16 @@ class NovelUseCases {
   Future<NovelEntity> updateNovel(NovelEntity novel) => _novelRepository.updateNovel(novel);
   Future<void> deleteNovel(String id) => _novelRepository.deleteNovel(id);
 
-  // Likes & Library
+  // Likes, Ratings & Library
   Future<bool> isNovelLiked(String novelId, String userId) => _novelRepository.isNovelLiked(novelId, userId);
   Future<void> toggleLikeNovel(String novelId, String userId) => _novelRepository.toggleLikeNovel(novelId, userId);
   Future<bool> isNovelSaved(String novelId, String userId) => _novelRepository.isNovelSaved(novelId, userId);
   Future<void> toggleSaveNovel(String novelId, String userId) => _novelRepository.toggleSaveNovel(novelId, userId);
   Future<List<NovelEntity>> getSavedNovels(String userId) => _novelRepository.getSavedNovels(userId);
+  Future<NovelEntity> rateNovel(String novelId, String userId, double rating) =>
+      _novelRepository.rateNovel(novelId, userId, rating);
+  Future<double?> getUserRating(String novelId, String userId) =>
+      _novelRepository.getUserRating(novelId, userId);
 
   // Progress & Downloads
   Future<void> saveReadingProgress(String userId, ReadingProgressEntity progress) =>

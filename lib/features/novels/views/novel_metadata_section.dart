@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../domain/entities/novel_entity.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_adaptive_image.dart';
+import '../controllers/novel_details_controller.dart';
 
 class NovelMetadataSection extends StatelessWidget {
   final NovelEntity novel;
@@ -21,7 +23,11 @@ class NovelMetadataSection extends StatelessWidget {
             const SizedBox(width: AppSpacing.s),
             _buildStatItem('Likes', _formatNumber(novel.totalLikes), Icons.favorite_outline_rounded),
             const SizedBox(width: AppSpacing.s),
-            _buildStatItem('Rating', novel.rating.toStringAsFixed(1), Icons.star_outline_rounded),
+            _buildStatItem(
+              'Rating',
+              novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : 'New',
+              Icons.star_rounded,
+            ),
             const SizedBox(width: AppSpacing.s),
             _buildStatItem('Chapters', '${novel.publishedEpisodeCount}', Icons.menu_book_rounded),
           ],
@@ -63,6 +69,89 @@ class NovelMetadataSection extends StatelessWidget {
                       .toList(),
                 ),
               ],
+            ],
+          ),
+        ),
+
+        // Interactive Community Rating Card
+        const SizedBox(height: AppSpacing.l),
+        AppCard(
+          padding: const EdgeInsets.all(AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.star_rounded, color: Color(0xFFEAA228), size: 24),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : 'No ratings yet',
+                        style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      if (novel.ratingCount > 0) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          '(${novel.ratingCount} ${novel.ratingCount == 1 ? "review" : "reviews"})',
+                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+                        ),
+                      ],
+                    ],
+                  ),
+                  Text(
+                    'Reader Feedback',
+                    style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.m),
+              Builder(
+                builder: (context) {
+                  final ctrl = Get.isRegistered<NovelDetailsController>(tag: novel.id)
+                      ? Get.find<NovelDetailsController>(tag: novel.id)
+                      : null;
+                  if (ctrl == null) return const SizedBox.shrink();
+
+                  return Obx(() {
+                    final currentRating = ctrl.userRating.value;
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          currentRating > 0
+                              ? 'Your Rating: ${currentRating.toStringAsFixed(0)} ★'
+                              : 'Tap a star to rate this novel:',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: currentRating > 0 ? AppColors.primary : AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.s),
+                        Row(
+                          children: List.generate(5, (index) {
+                            final star = index + 1;
+                            final isFilled = star <= currentRating;
+                            return IconButton(
+                              iconSize: 32,
+                              padding: const EdgeInsets.symmetric(horizontal: 2),
+                              constraints: const BoxConstraints(),
+                              icon: Icon(
+                                isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
+                                color: isFilled ? const Color(0xFFEAA228) : AppColors.textTertiary,
+                              ),
+                              onPressed: ctrl.isSubmittingRating.value
+                                  ? null
+                                  : () => ctrl.rateNovel(star.toDouble()),
+                            );
+                          }),
+                        ),
+                      ],
+                    );
+                  });
+                },
+              ),
             ],
           ),
         ),

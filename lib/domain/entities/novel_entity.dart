@@ -68,6 +68,7 @@ class NovelEntity {
   final int totalLikes;
   final int totalDownloads;
   final double rating;
+  final int ratingCount;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? publishedAt;
@@ -99,7 +100,8 @@ class NovelEntity {
     this.totalViews = 0,
     this.totalLikes = 0,
     this.totalDownloads = 0,
-    this.rating = 4.8,
+    this.rating = 0.0,
+    this.ratingCount = 0,
     required this.createdAt,
     required this.updatedAt,
     this.publishedAt,
@@ -137,6 +139,7 @@ class NovelEntity {
     int? totalLikes,
     int? totalDownloads,
     double? rating,
+    int? ratingCount,
     DateTime? createdAt,
     DateTime? updatedAt,
     DateTime? publishedAt,
@@ -169,6 +172,7 @@ class NovelEntity {
       totalLikes: totalLikes ?? this.totalLikes,
       totalDownloads: totalDownloads ?? this.totalDownloads,
       rating: rating ?? this.rating,
+      ratingCount: ratingCount ?? this.ratingCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       publishedAt: publishedAt ?? this.publishedAt,

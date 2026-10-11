@@ -112,6 +112,14 @@ class _InMemoryNovelRepository implements INovelRepository {
   Future<List<NovelEntity>> getSavedNovels(String userId) async => _dataSource.getSavedNovels(userId);
 
   @override
+  Future<NovelEntity> rateNovel(String novelId, String userId, double rating) async =>
+      _dataSource.rateNovel(novelId, userId, rating);
+
+  @override
+  Future<double?> getUserRating(String novelId, String userId) async =>
+      _dataSource.getUserRating(novelId, userId);
+
+  @override
   Future<void> saveReadingProgress(String userId, ReadingProgressEntity progress) async {
     throw UnimplementedError();
   }

@@ -12,6 +12,10 @@ import '../views/novel_hero_section.dart';
 import '../views/novel_metadata_section.dart';
 import '../views/episode_list_section.dart';
 import '../widgets/novel_action_bar.dart';
+import '../../auth/controllers/auth_controller.dart';
+import '../../../core/widgets/app_confirm_dialog.dart';
+import '../../../domain/entities/episode_entity.dart';
+
 class NovelDetailsPage extends StatelessWidget {
   const NovelDetailsPage({super.key});
 
@@ -52,18 +56,44 @@ class NovelDetailsPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          AppPageHeader(
-                            title: novel.title,
-                            subtitle: 'Story Details & Chapters',
-                            onBack: () => Get.back(),
+                          Builder(
+                            builder: (context) {
+                              final auth = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+                              final isAdmin = auth?.currentUser.value?.isAdmin ?? false;
+
+                              return AppPageHeader(
+                                title: novel.title,
+                                subtitle: 'Story Details & Chapters',
+                                badgeText: isAdmin ? 'ADMIN' : null,
+                                onBack: () => Get.back(),
+                                trailing: isAdmin
+                                    ? TextButton.icon(
+                                        style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                                        icon: const Icon(Icons.delete_forever_rounded, size: 18),
+                                        label: const Text('Delete Novel'),
+                                        onPressed: () => _confirmDeleteNovel(context, ctrl, novel.title),
+                                      )
+                                    : null,
+                              );
+                            },
                           ),
                           NovelHeroSection(novel: novel),
                           const SizedBox(height: AppSpacing.xl),
                           NovelMetadataSection(novel: novel),
                           const SizedBox(height: AppSpacing.xl),
-                          EpisodeListSection(
-                            episodes: episodes,
-                            onEpisodeTap: ctrl.openEpisode,
+                          Builder(
+                            builder: (context) {
+                              final auth = Get.isRegistered<AuthController>() ? Get.find<AuthController>() : null;
+                              final isAdmin = auth?.currentUser.value?.isAdmin ?? false;
+
+                              return EpisodeListSection(
+                                episodes: episodes,
+                                onEpisodeTap: ctrl.openEpisode,
+                                onDeleteEpisode: isAdmin
+                                    ? (ep) => _confirmDeleteEpisode(context, ctrl, ep)
+                                    : null,
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -137,6 +167,28 @@ class NovelDetailsPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _confirmDeleteNovel(BuildContext context, NovelDetailsController ctrl, String title) {
+    AppConfirmDialog.show(
+      context: context,
+      title: 'Permanently Delete Story',
+      message: 'Are you sure you want to delete "$title"? This will delete all chapters, remove all attached PDF files from Supabase storage, and purge records from the database.',
+      confirmLabel: 'Delete Novel & Files',
+      isDestructive: true,
+      onConfirm: () => ctrl.deleteNovelByAdmin(),
+    );
+  }
+
+  void _confirmDeleteEpisode(BuildContext context, NovelDetailsController ctrl, EpisodeEntity ep) {
+    AppConfirmDialog.show(
+      context: context,
+      title: 'Delete Chapter ${ep.episodeNumber}',
+      message: 'Delete "${ep.title}"? Any attached PDF document will also be permanently deleted from Supabase storage.',
+      confirmLabel: 'Delete Chapter',
+      isDestructive: true,
+      onConfirm: () => ctrl.deleteEpisodeByAdmin(ep),
     );
   }
 }

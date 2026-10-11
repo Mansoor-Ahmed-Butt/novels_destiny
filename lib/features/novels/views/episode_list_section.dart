@@ -6,11 +6,13 @@ import '../../../core/widgets/app_card.dart';
 class EpisodeListSection extends StatelessWidget {
   final List<EpisodeEntity> episodes;
   final ValueChanged<EpisodeEntity> onEpisodeTap;
+  final ValueChanged<EpisodeEntity>? onDeleteEpisode;
 
   const EpisodeListSection({
     super.key,
     required this.episodes,
     required this.onEpisodeTap,
+    this.onDeleteEpisode,
   });
 
   @override
@@ -109,8 +111,17 @@ class EpisodeListSection extends StatelessWidget {
                     '${ep.wordCount} words',
                     style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
                   ),
-                  const SizedBox(width: AppSpacing.s),
-                  const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 20),
+                  if (onDeleteEpisode != null) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                      tooltip: 'Delete Episode (Admin)',
+                      onPressed: () => onDeleteEpisode!(ep),
+                    ),
+                  ] else ...[
+                    const SizedBox(width: AppSpacing.s),
+                    const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 20),
+                  ],
                 ],
               ),
             );

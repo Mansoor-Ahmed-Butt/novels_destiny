@@ -120,39 +120,44 @@ class HomePage extends GetView<HomeController> {
                         onSelectGenre: controller.selectGenre,
                       ),
                       const SizedBox(height: AppSpacing.l),
-                      // Featured Banner Carousel with Glowing Lightning Border
-                      HomeCarouselSlider(
-                        novels: controller.featuredNovels,
-                        onNovelTap: controller.openNovel,
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
 
-                      // Continue Reading (if any)
-                      ContinueReadingSection(
-                        history: controller.readingHistory,
-                        novelMap: controller.historyNovelMap,
-                        onResumeTap: controller.resumeReading,
-                      ),
-                      if (controller.readingHistory.isNotEmpty)
+                      if (controller.selectedGenre.value != 'All') ...[
+                        _buildGenreNovelsSection(),
+                      ] else ...[
+                        // Featured Banner Carousel with Glowing Lightning Border
+                        HomeCarouselSlider(
+                          novels: controller.featuredNovels,
+                          onNovelTap: controller.openNovel,
+                        ),
                         const SizedBox(height: AppSpacing.xl),
 
-                      // Featured Hero Section
-                      HomeHeroSection(
-                        novels: controller.featuredNovels,
-                        onNovelTap: controller.openNovel,
-                      ),
-                      const SizedBox(height: AppSpacing.xxl),
+                        // Continue Reading (if any)
+                        ContinueReadingSection(
+                          history: controller.readingHistory,
+                          novelMap: controller.historyNovelMap,
+                          onResumeTap: controller.resumeReading,
+                        ),
+                        if (controller.readingHistory.isNotEmpty)
+                          const SizedBox(height: AppSpacing.xl),
 
-                      // Trending Grid
-                      TrendingNovelsSection(
-                        novels: controller.trendingNovels,
-                        onNovelTap: controller.openNovel,
-                      ),
-                      AdaptiveBannerSlot(
-                        placementKey: 'home_footer',
-                        userRole: user?.role,
-                      ),
-                      const SizedBox(height: AppSpacing.xxxl),
+                        // Featured Hero Section
+                        HomeHeroSection(
+                          novels: controller.featuredNovels,
+                          onNovelTap: controller.openNovel,
+                        ),
+                        const SizedBox(height: AppSpacing.xxl),
+
+                        // Trending Grid
+                        TrendingNovelsSection(
+                          novels: controller.trendingNovels,
+                          onNovelTap: controller.openNovel,
+                        ),
+                        AdaptiveBannerSlot(
+                          placementKey: 'home_footer',
+                          userRole: user?.role,
+                        ),
+                        const SizedBox(height: AppSpacing.xxxl),
+                      ],
                     ],
                   ],
                 ),
@@ -199,6 +204,77 @@ class HomePage extends GetView<HomeController> {
             );
           },
         ),
+      ],
+    );
+  }
+
+  Widget _buildGenreNovelsSection() {
+    final genre = controller.selectedGenre.value;
+
+    if (controller.isGenreLoading.value) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+        child: AppLoadingState(message: 'Exploring realm stories...'),
+      );
+    }
+
+    final novels = controller.genreNovels;
+
+    if (novels.isEmpty) {
+      return AppEmptyState(
+        title: 'No $genre Stories Yet',
+        message: 'No published stories found under "$genre". Writers can publish the very first novel here!',
+        icon: Icons.auto_stories_outlined,
+        actionLabel: 'Explore All Stories',
+        onAction: () => controller.selectGenre('All'),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$genre Stories',
+                  style: AppTextStyles.titleMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  '${novels.length} ${novels.length == 1 ? "story" : "stories"} found',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+                ),
+              ],
+            ),
+            TextButton.icon(
+              onPressed: () => controller.selectGenre('All'),
+              icon: const Icon(Icons.close_rounded, size: 16),
+              label: const Text('Show All'),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.m),
+        ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: novels.length,
+          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
+          itemBuilder: (context, index) {
+            final novel = novels[index];
+            return NovelCard(
+              novel: novel,
+              variant: NovelCardVariant.list,
+              onTap: () => controller.openNovel(novel),
+            );
+          },
+        ),
+        const SizedBox(height: AppSpacing.xxl),
       ],
     );
   }

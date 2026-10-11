@@ -22,6 +22,8 @@ class HomeController extends GetxController {
   final RxList<ReadingProgressEntity> readingHistory = <ReadingProgressEntity>[].obs;
   final RxMap<String, NovelEntity> historyNovelMap = <String, NovelEntity>{}.obs;
 
+  final RxList<NovelEntity> genreNovels = <NovelEntity>[].obs;
+  final RxBool isGenreLoading = false.obs;
   final RxString selectedGenre = 'All'.obs;
   final RxString searchQuery = ''.obs;
   final RxBool isSearching = false.obs;
@@ -102,10 +104,56 @@ class HomeController extends GetxController {
     });
   }
 
-  void selectGenre(String genre) {
+  Future<void> selectGenre(String genre) async {
     selectedGenre.value = genre;
     if (searchQuery.isNotEmpty) {
       onSearchChanged(searchQuery.value);
+      return;
+    }
+
+    if (genre == 'All') {
+      genreNovels.clear();
+      return;
+    }
+
+    try {
+      isGenreLoading.value = true;
+      final results = await _novelUseCases.getNovelsByGenre(genre);
+      if (results.isNotEmpty) {
+        genreNovels.assignAll(results);
+      } else {
+        // Fallback: match against already loaded featured & trending novels
+        final cleanGenre = genre.trim().toLowerCase();
+        final localMatches = [...featuredNovels, ...trendingNovels].where((n) {
+          final hasG = n.genreIds.any((g) {
+            final cg = g.trim().toLowerCase();
+            return cg == cleanGenre || cg.contains(cleanGenre) || cleanGenre.contains(cg);
+          });
+          final hasT = n.tags.any((t) {
+            final ct = t.trim().toLowerCase();
+            return ct == cleanGenre || ct.contains(cleanGenre) || cleanGenre.contains(ct);
+          });
+          return hasG || hasT;
+        }).fold<Map<String, NovelEntity>>({}, (map, n) {
+          map[n.id] = n;
+          return map;
+        }).values.toList();
+        genreNovels.assignAll(localMatches);
+      }
+      isGenreLoading.value = false;
+    } catch (e) {
+      final cleanGenre = genre.trim().toLowerCase();
+      final localMatches = [...featuredNovels, ...trendingNovels].where((n) {
+        final hasG = n.genreIds.any((g) => g.trim().toLowerCase().contains(cleanGenre) || cleanGenre.contains(g.trim().toLowerCase()));
+        final hasT = n.tags.any((t) => t.trim().toLowerCase().contains(cleanGenre) || cleanGenre.contains(t.trim().toLowerCase()));
+        return hasG || hasT;
+      }).fold<Map<String, NovelEntity>>({}, (map, n) {
+        map[n.id] = n;
+        return map;
+      }).values.toList();
+      genreNovels.assignAll(localMatches);
+      isGenreLoading.value = false;
+      _logger.error('Failed to load novels for genre $genre', e);
     }
   }
 

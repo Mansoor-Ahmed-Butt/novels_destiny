@@ -27,6 +27,8 @@ class NovelDetailsController extends GetxController {
   );
 
   final Rx<NovelDetailsState> state = Rx<NovelDetailsState>(const NovelDetailsLoading());
+  final RxDouble userRating = 0.0.obs;
+  final RxBool isSubmittingRating = false.obs;
 
   @override
   void onInit() {
@@ -123,6 +125,11 @@ class NovelDetailsController extends GetxController {
       final isLiked = uid.isNotEmpty ? await _novelUseCases.isNovelLiked(novelId, uid) : false;
       final isSaved = uid.isNotEmpty ? await _novelUseCases.isNovelSaved(novelId, uid) : false;
       final progress = uid.isNotEmpty ? await _novelUseCases.getReadingProgress(uid, novelId) : null;
+      if (uid.isNotEmpty) {
+        userRating.value = await _novelUseCases.getUserRating(novelId, uid) ?? 0.0;
+      } else {
+        userRating.value = 0.0;
+      }
 
       state.value = NovelDetailsReady(
         novel: novel,
@@ -247,5 +254,74 @@ class NovelDetailsController extends GetxController {
       'Thank you for helping keep our reading community safe. Our editorial team will review this story.',
       snackPosition: SnackPosition.BOTTOM,
     );
+  }
+
+  Future<void> rateNovel(double stars) async {
+    final current = state.value;
+    if (current is! NovelDetailsReady) return;
+
+    final auth = Get.find<AuthController>();
+    final user = auth.currentUser.value;
+    if (user == null) {
+      Get.snackbar('Sign In Required', 'Please sign in to rate this novel.');
+      return;
+    }
+
+    try {
+      isSubmittingRating.value = true;
+      final updatedNovel = await _novelUseCases.rateNovel(novelId, user.id, stars);
+      userRating.value = stars;
+      state.value = current.copyWith(novel: updatedNovel);
+      isSubmittingRating.value = false;
+      Get.snackbar(
+        'Rating Submitted',
+        'Thank you! You rated "${updatedNovel.title}" $stars ★',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      isSubmittingRating.value = false;
+      Get.snackbar('Error', 'Failed to submit rating: $e');
+    }
+  }
+
+  Future<void> deleteNovelByAdmin() async {
+    final current = state.value;
+    if (current is! NovelDetailsReady) return;
+
+    try {
+      await _novelUseCases.deleteNovel(novelId);
+      Get.snackbar(
+        'Novel Deleted',
+        '${current.novel.title} and any attached PDF files were permanently removed from Supabase and database.',
+        snackPosition: SnackPosition.TOP,
+      );
+      Get.back();
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to delete novel: $e');
+    }
+  }
+
+  Future<void> deleteEpisodeByAdmin(EpisodeEntity episode) async {
+    final current = state.value;
+    if (current is! NovelDetailsReady) return;
+
+    try {
+      await _episodeUseCases.deleteEpisode(novelId, episode.id);
+      final updatedEpisodes = current.episodes.where((e) => e.id != episode.id).toList();
+      final updatedNovel = current.novel.copyWith(
+        publishedEpisodeCount: updatedEpisodes.where((e) => e.isPublished).length,
+      );
+      state.value = current.copyWith(
+        novel: updatedNovel,
+        episodes: updatedEpisodes,
+      );
+      Get.snackbar(
+        'Episode Deleted',
+        'Chapter ${episode.episodeNumber} and any attached PDF files were deleted.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to delete episode: $e');
+    }
   }
 }

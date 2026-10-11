@@ -9,10 +9,14 @@ import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../../core/widgets/app_status_chip.dart';
 import '../../../core/widgets/novel_cover.dart';
+import '../../../core/widgets/app_confirm_dialog.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../controllers/admin_dashboard_controller.dart';
-import '../../writer_dashboard/widgets/writer_chart_view.dart';
+import '../widgets/admin_analytics_charts_view.dart';
 import '../../../domain/entities/report_entity.dart';
+import '../../../domain/entities/novel_entity.dart';
+import '../../../domain/entities/episode_entity.dart';
+import '../../../app/routes/app_routes.dart';
 
 class AdminDashboardPage extends GetView<AdminDashboardController> {
   const AdminDashboardPage({super.key});
@@ -63,23 +67,20 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                           label: 'Total Users',
                           value: '${(stats?.totalUsers != null && stats!.totalUsers > 0) ? stats.totalUsers : controller.users.length}',
                         ),
-                        SummarySubMetric(label: 'Stories', value: '${stats?.totalNovels ?? 0}'),
+                        SummarySubMetric(label: 'Stories', value: '${stats?.totalNovels ?? controller.allNovels.length}'),
                         SummarySubMetric(label: 'Pending Review', value: '${controller.pendingNovels.length}'),
                         SummarySubMetric(label: 'Reports', value: '${controller.reports.where((r) => r.status == ReportStatus.pending).length}'),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xl),
 
-                    // Time Series Chart
-                    if (stats != null && stats.dailyReadsTrend.isNotEmpty) ...[
-                      WriterChartView(
-                        dataPoints: stats.dailyReadsTrend,
-                        title: 'Platform-wide Traffic Growth',
-                      ),
+                    // Intelligence & Ratings Analytics Charts
+                    if (stats != null) ...[
+                      AdminAnalyticsChartsView(stats: stats),
                       const SizedBox(height: AppSpacing.xl),
                     ],
 
-                    // Section Tabs: Writer Applications, Moderation Queue, Reports, Users
+                    // Section Tabs: Writer Applications, Moderation Queue, Stories, Reports, Users
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -88,9 +89,11 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                           const SizedBox(width: AppSpacing.s),
                           _buildTab('Moderation Queue (${controller.pendingNovels.length})', 1),
                           const SizedBox(width: AppSpacing.s),
-                          _buildTab('User Reports (${controller.reports.length})', 2),
+                          _buildTab('Stories & Content (${controller.allNovels.length})', 2),
                           const SizedBox(width: AppSpacing.s),
-                          _buildTab('All Users (${controller.users.length})', 3),
+                          _buildTab('User Reports (${controller.reports.length})', 3),
+                          const SizedBox(width: AppSpacing.s),
+                          _buildTab('All Users (${controller.users.length})', 4),
                         ],
                       ),
                     ),
@@ -99,8 +102,10 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                     if (controller.selectedTab.value == 0)
                       _buildWriterApplicationsTab()
                     else if (controller.selectedTab.value == 1)
-                      _buildModerationTab()
+                      _buildModerationTab(context)
                     else if (controller.selectedTab.value == 2)
+                      _buildStoriesTab(context)
+                    else if (controller.selectedTab.value == 3)
                       _buildReportsTab()
                     else
                       _buildUsersTab(),
@@ -140,7 +145,7 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
     );
   }
 
-  Widget _buildModerationTab() {
+  Widget _buildModerationTab(BuildContext context) {
     final pending = controller.pendingNovels;
     if (pending.isEmpty) {
       return const AppEmptyState(
@@ -228,6 +233,12 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                             onPressed: () => controller.rejectNovel(novel),
                           ),
                         ),
+                        const SizedBox(width: AppSpacing.s),
+                        IconButton(
+                          icon: const Icon(Icons.delete_forever_rounded, color: AppColors.error),
+                          tooltip: 'Delete Novel & Supabase Files',
+                          onPressed: () => _confirmDeleteNovel(context, novel),
+                        ),
                       ],
                     ),
                   ],
@@ -238,19 +249,30 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
                 children: [
                   Expanded(child: novelInfo),
                   const SizedBox(width: AppSpacing.m),
-                  Column(
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      AppPrimaryButton(
-                        label: 'Approve',
-                        icon: Icons.check_rounded,
-                        backgroundColor: AppColors.success,
-                        onPressed: () => controller.approveNovel(novel),
+                      Column(
+                        children: [
+                          AppPrimaryButton(
+                            label: 'Approve',
+                            icon: Icons.check_rounded,
+                            backgroundColor: AppColors.success,
+                            onPressed: () => controller.approveNovel(novel),
+                          ),
+                          const SizedBox(height: AppSpacing.s),
+                          AppSecondaryButton(
+                            label: 'Reject',
+                            icon: Icons.close_rounded,
+                            onPressed: () => controller.rejectNovel(novel),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: AppSpacing.s),
-                      AppSecondaryButton(
-                        label: 'Reject',
-                        icon: Icons.close_rounded,
-                        onPressed: () => controller.rejectNovel(novel),
+                      const SizedBox(width: AppSpacing.s),
+                      IconButton(
+                        icon: const Icon(Icons.delete_forever_rounded, color: AppColors.error),
+                        tooltip: 'Delete Novel & Supabase Files',
+                        onPressed: () => _confirmDeleteNovel(context, novel),
                       ),
                     ],
                   ),
@@ -260,6 +282,345 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildStoriesTab(BuildContext context) {
+    final novels = controller.allNovels;
+    if (novels.isEmpty) {
+      return const AppEmptyState(
+        title: 'No novels on platform',
+        message: 'No published or submitted stories found.',
+        icon: Icons.auto_stories_outlined,
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: novels.length,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
+      itemBuilder: (context, index) {
+        final novel = novels[index];
+        final hasPdf = (novel.pdfUrl != null && novel.pdfUrl!.isNotEmpty) ||
+            (novel.pdfStoragePath != null && novel.pdfStoragePath!.isNotEmpty);
+
+        return AppCard(
+          padding: const EdgeInsets.all(AppSpacing.m),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  NovelCover(url: novel.coverUrl, title: novel.title, width: 68, height: 95),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                novel.title,
+                                style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            AppStatusChip.moderationStatus(novel.moderationStatus),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text('Author: ${novel.writerName}', style: AppTextStyles.bodySmall),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, size: 14, color: Color(0xFFEAA228)),
+                            const SizedBox(width: 2),
+                            Text(
+                              novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : 'Unrated',
+                              style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            if (novel.ratingCount > 0) ...[
+                              const SizedBox(width: 2),
+                              Text(
+                                '(${novel.ratingCount})',
+                                style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary, fontSize: 10),
+                              ),
+                            ],
+                            const SizedBox(width: AppSpacing.m),
+                            Text(
+                              '${novel.totalViews} reads',
+                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
+                            ),
+                            const SizedBox(width: AppSpacing.m),
+                            Text(
+                              '${novel.publishedEpisodeCount} chs',
+                              style: AppTextStyles.labelSmall.copyWith(color: AppColors.textTertiary),
+                            ),
+                          ],
+                        ),
+                        if (hasPdf) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.errorLight,
+                              borderRadius: BorderRadius.circular(AppRadii.pill),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.picture_as_pdf_rounded, size: 12, color: AppColors.error),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Contains Supabase PDF',
+                                  style: AppTextStyles.labelSmall.copyWith(
+                                    color: AppColors.error,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.m),
+              const Divider(height: 1),
+              const SizedBox(height: AppSpacing.s),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        icon: const Icon(Icons.open_in_new_rounded, size: 14),
+                        label: const Text('View Novel'),
+                        onPressed: () => Get.toNamed(AppRoutes.novelDetails(novel.id)),
+                      ),
+                      const SizedBox(width: AppSpacing.s),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        icon: const Icon(Icons.menu_book_rounded, size: 14),
+                        label: Text('Chapters (${novel.publishedEpisodeCount})'),
+                        onPressed: () => _showNovelEpisodesSheet(context, novel),
+                      ),
+                    ],
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      visualDensity: VisualDensity.compact,
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    icon: const Icon(Icons.delete_forever_rounded, size: 16),
+                    label: const Text('Delete'),
+                    onPressed: () => _confirmDeleteNovel(context, novel),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showNovelEpisodesSheet(BuildContext context, NovelEntity novel) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
+      ),
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.65,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          builder: (context, scrollController) {
+            return FutureBuilder<List<EpisodeEntity>>(
+              future: controller.getEpisodesForNovel(novel.id),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final episodes = snapshot.data ?? [];
+
+                return Padding(
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBorder,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Chapters: ${novel.title}',
+                                  style: AppTextStyles.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${episodes.length} Total Chapters • Manage or delete episodes',
+                                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () => Navigator.of(ctx).pop(),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      if (episodes.isEmpty)
+                        const Expanded(
+                          child: Center(
+                            child: Text('No episodes created for this novel yet.'),
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.separated(
+                            controller: scrollController,
+                            itemCount: episodes.length,
+                            separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.s),
+                            itemBuilder: (context, epIdx) {
+                              final ep = episodes[epIdx];
+                              final hasPdf = ep.blocks.any((b) => (b.storagePath != null && b.storagePath!.isNotEmpty));
+
+                              return Container(
+                                padding: const EdgeInsets.all(AppSpacing.m),
+                                decoration: BoxDecoration(
+                                  color: AppColors.card,
+                                  borderRadius: BorderRadius.circular(AppRadii.m),
+                                  border: Border.all(color: AppColors.cardBorder),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceMuted,
+                                        borderRadius: BorderRadius.circular(AppRadii.s),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '${ep.episodeNumber}',
+                                          style: AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSpacing.m),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            ep.title,
+                                            style: AppTextStyles.titleSmall.copyWith(fontSize: 14),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                '${ep.wordCount} words • ${ep.totalViews} views',
+                                                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary, fontSize: 11),
+                                              ),
+                                              if (hasPdf) ...[
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  '• [PDF attached]',
+                                                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.w600),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                                      tooltip: 'Delete Episode (Cleans up Supabase PDF)',
+                                      onPressed: () {
+                                        Navigator.of(ctx).pop();
+                                        _confirmDeleteEpisode(context, novel.id, ep);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteNovel(BuildContext context, NovelEntity novel) {
+    AppConfirmDialog.show(
+      context: context,
+      title: 'Permanently Delete Story',
+      message: 'Delete "${novel.title}"? This will permanently delete this novel, all its episodes, and remove any attached PDF files from Supabase storage.',
+      confirmLabel: 'Delete Novel & Files',
+      isDestructive: true,
+      onConfirm: () => controller.deleteNovel(novel),
+    );
+  }
+
+  void _confirmDeleteEpisode(BuildContext context, String novelId, EpisodeEntity episode) {
+    AppConfirmDialog.show(
+      context: context,
+      title: 'Delete Chapter ${episode.episodeNumber}',
+      message: 'Delete "${episode.title}"? Any attached PDF document will also be permanently deleted from Supabase storage.',
+      confirmLabel: 'Delete Chapter',
+      isDestructive: true,
+      onConfirm: () => controller.deleteEpisode(novelId, episode),
     );
   }
 
