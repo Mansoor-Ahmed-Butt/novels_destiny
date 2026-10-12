@@ -66,6 +66,7 @@ dependencies:
   shimmer: ^4.0.0
   shared_preferences: ^2.5.5
   speech_to_text: ^7.5.0
+  flutter_local_notifications: ^22.3.1
 
 dev_dependencies:
   flutter_test:

@@ -1,45 +1,46 @@
 {
   "project_info": {
-    "project_number": "454348386247",
-    "project_id": "novels-destiny",
-    "storage_bucket": "novels-destiny.firebasestorage.app"
+    "project_number": "211813976263",
+    "firebase_url": "https://novels-destiny-22444-default-rtdb.firebaseio.com",
+    "project_id": "novels-destiny-22444",
+    "storage_bucket": "novels-destiny-22444.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:454348386247:android:b27e1f4003a1ddf5b933e2",
+        "mobilesdk_app_id": "1:211813976263:android:9730ea7be0ef7863be56e2",
         "android_client_info": {
-          "package_name": "com.example.novels_destiny"
+          "package_name": "com.example.novelsdestiny"
         }
       },
       "oauth_client": [
         {
-          "client_id": "454348386247-ccgphviqirv796k1e50c697tvd6longd.apps.googleusercontent.com",
+          "client_id": "211813976263-cmc0ltlq7robeorq5jbemq8r37ha3f1n.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.example.novels_destiny",
-            "certificate_hash": "5f3b89aeb462ff4521fc6008a0d01bc759f03ceb"
+            "package_name": "com.example.novelsdestiny",
+            "certificate_hash": "de42041417504347e6f0ed47674048115d91c760"
           }
         },
         {
-          "client_id": "454348386247-acoi211ubonk0pooshljofr6fugh4ac7.apps.googleusercontent.com",
+          "client_id": "211813976263-qthogtunh9phc5979j787uo7jt6jcjbd.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBpb3ST28ugjwzHLpN1O-5j2NmdvkErumc"
+          "current_key": "AIzaSyBT9199w7cZfs3mn9gpt3ACrN4Ka4iUD7E"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "454348386247-acoi211ubonk0pooshljofr6fugh4ac7.apps.googleusercontent.com",
+              "client_id": "211813976263-qthogtunh9phc5979j787uo7jt6jcjbd.apps.googleusercontent.com",
               "client_type": 3
             },
             {
-              "client_id": "454348386247-698u65r3qori55lvgmrqdonhnf60s5i8.apps.googleusercontent.com",
+              "client_id": "211813976263-bqcgh8h1esmqm2n0s6bbuksukjq8es1k.apps.googleusercontent.com",
               "client_type": 2,
               "ios_info": {
                 "bundle_id": "com.example.novelsDestiny"

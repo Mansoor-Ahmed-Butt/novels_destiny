@@ -7,6 +7,7 @@ import '../sources/firestore_data_source.dart';
 import '../models/episode_model.dart';
 import '../../core/errors/failures.dart';
 import '../../core/services/supabase_storage_service.dart';
+import '../../core/services/notification_service.dart';
 
 class EpisodeRepositoryImpl implements IEpisodeRepository {
   final AppDataSource _dataSource;
@@ -132,19 +133,31 @@ class EpisodeRepositoryImpl implements IEpisodeRepository {
 
   void _notifyFollowers(EpisodeModel episode) async {
     try {
+      final novel = await _firestore.getNovel(episode.novelId);
+      final novelTitle = novel?.title ?? 'Novel';
+
       final followers = await _firestore.getNovelFollowerUserIds(episode.novelId);
       for (final uid in followers) {
         await _firestore.createNotification(
           userId: uid,
           type: 'new_episode',
           title: 'New Chapter Available!',
-          body: 'Chapter ${episode.episodeNumber}: ${episode.title} has just been released.',
+          body: '$novelTitle — Chapter ${episode.episodeNumber}: ${episode.title} has just been released.',
           novelId: episode.novelId,
           episodeId: episode.id,
         );
       }
+
+      // Also ensure broadcast notification is dispatched to all installed app devices
+      NotificationService.to.broadcastNewEpisodeNotification(
+        novelId: episode.novelId,
+        episodeId: episode.id,
+        novelTitle: novelTitle,
+        episodeNumber: episode.episodeNumber,
+        episodeTitle: episode.title,
+      );
     } catch (e) {
-      debugPrint('Error creating follower notifications: $e');
+      debugPrint('Error creating follower and broadcast notifications: $e');
     }
   }
 }

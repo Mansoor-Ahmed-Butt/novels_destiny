@@ -8,6 +8,7 @@ import '../../../domain/usecases/episode_usecases.dart';
 import '../../../domain/usecases/admin_usecases.dart';
 import '../../../domain/entities/episode_entity.dart';
 import '../../../core/services/logger_service.dart';
+import '../../../core/services/notification_service.dart';
 
 
 class AdminDashboardController extends GetxController {
@@ -213,7 +214,22 @@ class AdminDashboardController extends GetxController {
     try {
       await _adminUseCases.updateNovelModerationStatus(novel.id, ModerationStatus.approved);
       pendingNovels.removeWhere((n) => n.id == novel.id);
-      Get.snackbar('Approved', '${novel.title} is now visible to readers.');
+
+      // Notify all users who installed the app about the newly approved novel & chapter
+      String? firstEpId;
+      try {
+        final eps = await _episodeUseCases.getEpisodesForNovel(novel.id, publishedOnly: true);
+        if (eps.isNotEmpty) firstEpId = eps.first.id;
+      } catch (_) {}
+
+      NotificationService.to.broadcastNewNovelNotification(
+        novelId: novel.id,
+        novelTitle: novel.title,
+        writerName: novel.writerName,
+        firstEpisodeId: firstEpId,
+      );
+
+      Get.snackbar('Approved', '${novel.title} is now visible and notification broadcast to readers.');
     } catch (e) {
       Get.snackbar('Error', 'Failed to approve novel');
     }

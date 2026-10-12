@@ -41,48 +41,46 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAXyUNds7SaXOmS3RNeiJoK8LxSFxiJgpY',
-    appId: '1:454348386247:web:251c55947e6697bfb933e2',
-    messagingSenderId: '454348386247',
-    projectId: 'novels-destiny',
-    authDomain: 'novels-destiny.firebaseapp.com',
-    storageBucket: 'novels-destiny.firebasestorage.app',
-    measurementId: 'G-X26H4D7TK6',
+    apiKey: 'AIzaSyAwokFYY2HPoxPvP9J7VHUpLuiyf_tnRFU',
+    appId: '1:211813976263:web:fde1e0c666295543be56e2',
+    messagingSenderId: '211813976263',
+    projectId: 'novels-destiny-22444',
+    authDomain: 'novels-destiny-22444.firebaseapp.com',
+    storageBucket: 'novels-destiny-22444.firebasestorage.app',
+    measurementId: 'G-NYKG59FRSQ',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBpb3ST28ugjwzHLpN1O-5j2NmdvkErumc',
-    appId: '1:454348386247:android:b27e1f4003a1ddf5b933e2',
-    messagingSenderId: '454348386247',
-    projectId: 'novels-destiny',
-    storageBucket: 'novels-destiny.firebasestorage.app',
+    apiKey: 'AIzaSyBT9199w7cZfs3mn9gpt3ACrN4Ka4iUD7E',
+    appId: '1:211813976263:android:9730ea7be0ef7863be56e2',
+    messagingSenderId: '211813976263',
+    projectId: 'novels-destiny-22444',
+    storageBucket: 'novels-destiny-22444.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDnlR3AAJB1ShDqINxLdvlgiJF4mYWHn34',
-    appId: '1:454348386247:ios:e07c7168242a64b0b933e2',
-    messagingSenderId: '454348386247',
-    projectId: 'novels-destiny',
-    storageBucket: 'novels-destiny.firebasestorage.app',
+    apiKey: 'AIzaSyCiEpuoNe0eK0RRKXXfhTPDMBBFdaFTSU8',
+    appId: '1:211813976263:ios:5c822c07706236cabe56e2',
+    messagingSenderId: '211813976263',
+    projectId: 'novels-destiny-22444',
+    storageBucket: 'novels-destiny-22444.firebasestorage.app',
     iosBundleId: 'com.example.novelsDestiny',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDnlR3AAJB1ShDqINxLdvlgiJF4mYWHn34',
-    appId: '1:454348386247:ios:e07c7168242a64b0b933e2',
-    messagingSenderId: '454348386247',
-    projectId: 'novels-destiny',
-    storageBucket: 'novels-destiny.firebasestorage.app',
+    apiKey: 'AIzaSyCiEpuoNe0eK0RRKXXfhTPDMBBFdaFTSU8',
+    appId: '1:211813976263:ios:5c822c07706236cabe56e2',
+    messagingSenderId: '211813976263',
+    projectId: 'novels-destiny-22444',
+    storageBucket: 'novels-destiny-22444.firebasestorage.app',
     iosBundleId: 'com.example.novelsDestiny',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAXyUNds7SaXOmS3RNeiJoK8LxSFxiJgpY',
-    appId: '1:454348386247:web:e0a033db33366170b933e2',
-    messagingSenderId: '454348386247',
-    projectId: 'novels-destiny',
-    authDomain: 'novels-destiny.firebaseapp.com',
-    storageBucket: 'novels-destiny.firebasestorage.app',
-    measurementId: 'G-BP7Y5X6J19',
+    apiKey: 'AIzaSyAwokFYY2HPoxPvP9J7VHUpLuiyf_tnRFU',
+    appId: '1:211813976263:web:8a71b25ff64478bfbe56e2',
+    messagingSenderId: '211813976263',
+    projectId: 'novels-destiny-22444',
+    authDomain: 'novels-destiny-22444.firebaseapp.com',
+    storageBucket: 'novels-destiny-22444.firebasestorage.app',
+    measurementId: 'G-M8PS5R5NSG',
   );
 }

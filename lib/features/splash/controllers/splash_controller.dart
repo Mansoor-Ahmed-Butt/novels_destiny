@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../app/routes/app_routes.dart';
 import '../../../domain/entities/user_entity.dart';
+import '../../../core/services/notification_service.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../main_shell/main_shell_page.dart';
 
@@ -35,6 +37,13 @@ class SplashController extends GetxController {
     } else {
       // Unauthenticated, show the Sign In page
       Get.offAllNamed(AppRoutes.auth);
+    }
+
+    // Check if app was launched via notification tap from terminated (closed) state
+    final launchedFromNotification =
+        await NotificationService.to.consumePendingLaunchNotification();
+    if (launchedFromNotification) {
+      debugPrint('SplashController: Handled notification launch directly to novel episode');
     }
   }
 }

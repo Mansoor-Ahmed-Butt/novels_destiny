@@ -8,6 +8,8 @@ import '../../../domain/entities/content_block_entity.dart';
 import '../../../domain/usecases/episode_usecases.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/supabase_storage_service.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../domain/usecases/novel_usecases.dart';
 import '../../auth/controllers/auth_controller.dart';
 
 class EpisodeEditorController extends GetxController {
@@ -311,6 +313,25 @@ class EpisodeEditorController extends GetxController {
         await _episodeUseCases.createEpisode(episode);
       }
       if (_isDisposed) return;
+
+      if (publishImmediately) {
+        String novelTitle = 'Novel';
+        try {
+          if (Get.isRegistered<NovelUseCases>()) {
+            final n = await Get.find<NovelUseCases>().getNovelById(novelId);
+            if (n != null) novelTitle = n.title;
+          }
+        } catch (_) {}
+
+        NotificationService.to.broadcastNewEpisodeNotification(
+          novelId: novelId,
+          episodeId: _currentEpisodeId,
+          novelTitle: novelTitle,
+          episodeNumber: epNumber,
+          episodeTitle: titleController.text.trim(),
+          writerName: user.displayName,
+        );
+      }
 
       hasUnsavedChanges.value = false;
       isSaving.value = false;

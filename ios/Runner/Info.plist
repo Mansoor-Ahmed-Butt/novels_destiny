@@ -72,5 +72,14 @@
 		<string>This app requires microphone access for voice dictation and speech-to-text novel writing.</string>
 		<key>NSSpeechRecognitionUsageDescription</key>
 		<string>This app requires speech recognition access to transcribe spoken stories into text.</string>
+		<key>GADApplicationIdentifier</key>
+		<string>ca-app-pub-6604577602748066~6170311115</string>
+		<key>SKAdNetworkItems</key>
+		<array>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>cstr6suwn9.skadnetwork</string>
+			</dict>
+		</array>
 	</dict>
 </plist>

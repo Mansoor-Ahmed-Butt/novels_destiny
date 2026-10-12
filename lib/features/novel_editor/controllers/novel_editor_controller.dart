@@ -13,6 +13,7 @@ import '../../../core/services/supabase_storage_service.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../writer_dashboard/controllers/writer_dashboard_controller.dart';
 import '../../admin_dashboard/controllers/admin_dashboard_controller.dart';
+import '../../../core/services/notification_service.dart';
 
 class NovelEditorController extends GetxController {
   final String? existingNovelId;
@@ -360,6 +361,21 @@ class NovelEditorController extends GetxController {
       // Refresh admin dashboard if active
       if (Get.isRegistered<AdminDashboardController>()) {
         Get.find<AdminDashboardController>().loadDashboard();
+      }
+
+      if (publishImmediately) {
+        String? firstEpId;
+        try {
+          final eps = await _episodeUseCases.getEpisodesForNovel(novel.id, publishedOnly: false);
+          if (eps.isNotEmpty) firstEpId = eps.first.id;
+        } catch (_) {}
+
+        NotificationService.to.broadcastNewNovelNotification(
+          novelId: novel.id,
+          novelTitle: novel.title,
+          writerName: user.displayName,
+          firstEpisodeId: firstEpId,
+        );
       }
 
       hasUnsavedChanges.value = false;

@@ -83,7 +83,10 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
           itemBuilder: (context, index, realIndex) {
             final novel = widget.novels[index];
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 4.0,
+              ),
               child: Obx(() {
                 final isActive = controller.currentIndex.value == index;
                 return _buildSlideCard(novel, isActive: isActive);
@@ -97,45 +100,49 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
         // Animated Page Indicator
         if (widget.novels.length > 1)
           Center(
-            child: Obx(() => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: List.generate(widget.novels.length, (index) {
-                final isActive = controller.currentIndex.value == index;
-                return GestureDetector(
-                  onTap: () => controller.animateToSlide(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeOutCubic,
-                    margin: const EdgeInsets.symmetric(horizontal: 4.0),
-                    width: isActive ? 24.0 : 8.0,
-                    height: 7.0,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(AppRadii.pill),
-                      gradient: isActive
-                          ? const LinearGradient(
-                              colors: [
-                                Color(0xFFFFDFB0),
-                                AppColors.accent,
-                                Color(0xFFC47B49),
-                              ],
-                            )
-                          : null,
-                      color: isActive ? null : AppColors.cardBorder,
-                      boxShadow: isActive
-                          ? [
-                              BoxShadow(
-                                color: AppColors.accent.withValues(alpha: 0.55),
-                                blurRadius: 8,
-                                spreadRadius: 1,
-                                offset: const Offset(0, 1),
-                              ),
-                            ]
-                          : null,
+            child: Obx(
+              () => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(widget.novels.length, (index) {
+                  final isActive = controller.currentIndex.value == index;
+                  return GestureDetector(
+                    onTap: () => controller.animateToSlide(index),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      margin: const EdgeInsets.symmetric(horizontal: 4.0),
+                      width: isActive ? 24.0 : 8.0,
+                      height: 7.0,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadii.pill),
+                        gradient: isActive
+                            ? const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFDFB0),
+                                  AppColors.accent,
+                                  Color(0xFFC47B49),
+                                ],
+                              )
+                            : null,
+                        color: isActive ? null : AppColors.cardBorder,
+                        boxShadow: isActive
+                            ? [
+                                BoxShadow(
+                                  color: AppColors.accent.withValues(
+                                    alpha: 0.55,
+                                  ),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ]
+                            : null,
+                      ),
                     ),
-                  ),
-                );
-              }),
-            )),
+                  );
+                }),
+              ),
+            ),
           ),
       ],
     );
@@ -145,8 +152,8 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
     final badgeText = novel.status == NovelStatus.completed
         ? 'COMPLETED'
         : novel.publishedEpisodeCount > 0
-            ? 'CHAPTER ${novel.publishedEpisodeCount}'
-            : 'NEW STORY';
+        ? 'CHAPTER ${novel.publishedEpisodeCount}'
+        : 'NEW STORY';
 
     return GestureDetector(
       onTap: () => widget.onNovelTap?.call(novel),
@@ -242,17 +249,26 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.50),
-                              borderRadius: BorderRadius.circular(AppRadii.pill),
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.pill,
+                              ),
                               border: Border.all(
-                                color: const Color(0xFFFFDFB0).withValues(alpha: 0.75),
+                                color: const Color(
+                                  0xFFFFDFB0,
+                                ).withValues(alpha: 0.75),
                                 width: 1.2,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFFFD580).withValues(alpha: 0.35),
+                                  color: const Color(
+                                    0xFFFFD580,
+                                  ).withValues(alpha: 0.35),
                                   blurRadius: 6,
                                 ),
                               ],
@@ -260,7 +276,11 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.bolt_rounded, size: 12, color: Color(0xFFFFDFB0)),
+                                const Icon(
+                                  Icons.bolt_rounded,
+                                  size: 12,
+                                  color: Color(0xFFFFDFB0),
+                                ),
                                 const SizedBox(width: 3),
                                 Text(
                                   badgeText,
@@ -275,14 +295,23 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3.5,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black.withValues(alpha: 0.45),
-                              borderRadius: BorderRadius.circular(AppRadii.pill),
-                              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.pill,
+                              ),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                              ),
                             ),
                             child: Text(
-                              novel.rating > 0 ? '${novel.rating.toStringAsFixed(1)} ★' : 'New ★',
+                              novel.rating > 0
+                                  ? '${novel.rating.toStringAsFixed(1)} ★'
+                                  : 'New ★',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
@@ -303,7 +332,9 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
-                                color: const Color(0xFFFFDFB0).withValues(alpha: 0.95),
+                                color: const Color(
+                                  0xFFFFDFB0,
+                                ).withValues(alpha: 0.95),
                                 letterSpacing: 1.0,
                               ),
                             ),
@@ -346,14 +377,20 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
                               gradient: const LinearGradient(
                                 colors: [Color(0xFFE5A86D), Color(0xFFC47B49)],
                               ),
-                              borderRadius: BorderRadius.circular(AppRadii.pill),
+                              borderRadius: BorderRadius.circular(
+                                AppRadii.pill,
+                              ),
                               border: Border.all(
-                                color: const Color(0xFFFFE8C2).withValues(alpha: 0.75),
+                                color: const Color(
+                                  0xFFFFE8C2,
+                                ).withValues(alpha: 0.75),
                                 width: 1,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFFC47B49).withValues(alpha: 0.45),
+                                  color: const Color(
+                                    0xFFC47B49,
+                                  ).withValues(alpha: 0.45),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -371,7 +408,11 @@ class _HomeCarouselSliderState extends State<HomeCarouselSlider> {
                                   ),
                                 ),
                                 const SizedBox(width: 5),
-                                const Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
                               ],
                             ),
                           ),
@@ -422,24 +463,35 @@ class _EmptyCarouselPlaceholder extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1A2E), Color(0xFF16213E)],
+          colors: [Colors.yellow, Colors.orange],
         ),
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.library_books_outlined, size: 56, color: AppColors.accent),
+          const Icon(
+            Icons.library_books_outlined,
+            size: 56,
+            color: AppColors.accent,
+          ),
           const SizedBox(height: 16),
           Text(
             'No stories published yet',
-            style: AppTextStyles.titleMedium.copyWith(color: AppColors.textPrimary),
+            style: AppTextStyles.titleMedium.copyWith(
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 8),
-          Text(
-            'Admin or writers can publish novels from the Studio tab.',
-            textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            child: Text(
+              'Admin or writers can publish novels from the Studio tab.',
+              textAlign: TextAlign.center,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
+            ),
           ),
         ],
       ),

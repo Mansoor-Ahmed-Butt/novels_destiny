@@ -32,6 +32,8 @@ class FirestoreDataSource {
   CollectionReference<Map<String, dynamic>>? get _followersCol => _firestore?.collection('novel_followers');
   CollectionReference<Map<String, dynamic>>? get _reportsCol => _firestore?.collection('reports');
   CollectionReference<Map<String, dynamic>>? get _notificationsCol => _firestore?.collection('notifications');
+  CollectionReference<Map<String, dynamic>>? get _broadcastNotificationsCol => _firestore?.collection('broadcast_notifications');
+  CollectionReference<Map<String, dynamic>>? get _deviceTokensCol => _firestore?.collection('device_tokens');
 
   // ================= USERS =================
   Future<void> saveUser(UserModel user) async {
@@ -530,6 +532,59 @@ class FirestoreDataSource {
       });
     } catch (e) {
       debugPrint('Firestore createNotification warning: $e');
+    }
+  }
+
+  Future<void> createBroadcastNotification({
+    required String type,
+    required String title,
+    required String body,
+    required String novelId,
+    String? episodeId,
+    String? novelTitle,
+    int? episodeNumber,
+    String? writerName,
+  }) async {
+    final col = _broadcastNotificationsCol;
+    if (col == null) return;
+    try {
+      await col.add({
+        'type': type,
+        'title': title,
+        'body': body,
+        'novelId': novelId,
+        'episodeId': episodeId,
+        'novelTitle': novelTitle,
+        'episodeNumber': episodeNumber,
+        'writerName': writerName,
+        'topic': 'all_users',
+        'status': 'pending',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Firestore createBroadcastNotification warning: $e');
+    }
+  }
+
+  Future<void> saveDeviceToken({
+    required String token,
+    String? userId,
+    required String platform,
+  }) async {
+    final col = _deviceTokensCol;
+    if (col == null) return;
+    try {
+      final safeId = '${userId ?? "guest"}_${token.substring(0, token.length.clamp(0, 30))}';
+      await col.doc(safeId).set({
+        'token': token,
+        'userId': userId,
+        'platform': platform,
+        'isSubscribed': true,
+        'topics': ['all_users', 'new_releases', 'new_episodes', 'new_novels'],
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('Firestore saveDeviceToken warning: $e');
     }
   }
 

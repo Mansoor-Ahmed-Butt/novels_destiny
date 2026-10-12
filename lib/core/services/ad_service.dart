@@ -33,18 +33,18 @@ class AdService {
   }
 
   static String get bannerAdUnitId => _resolveUnitId(
-        androidEnvKey: AdConstants.envAndroidBanner,
-        iosEnvKey: AdConstants.envIosBanner,
-        testAndroid: AdConstants.testAndroidBanner,
-        testIos: AdConstants.testIosBanner,
-      );
+    androidEnvKey: AdConstants.envAndroidBanner,
+    iosEnvKey: AdConstants.envIosBanner,
+    testAndroid: AdConstants.testAndroidBanner,
+    testIos: AdConstants.testIosBanner,
+  );
 
   static String get interstitialAdUnitId => _resolveUnitId(
-        androidEnvKey: AdConstants.envAndroidInterstitial,
-        iosEnvKey: AdConstants.envIosInterstitial,
-        testAndroid: AdConstants.testAndroidInterstitial,
-        testIos: AdConstants.testIosInterstitial,
-      );
+    androidEnvKey: AdConstants.envAndroidInterstitial,
+    iosEnvKey: AdConstants.envIosInterstitial,
+    testAndroid: AdConstants.testAndroidInterstitial,
+    testIos: AdConstants.testIosInterstitial,
+  );
 
   static String _resolveUnitId({
     required String androidEnvKey,
@@ -137,18 +137,18 @@ class AdService {
 
           _interstitialAd!.fullScreenContentCallback =
               FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              _interstitialAd = null;
-              preloadInterstitial();
-            },
-            onAdFailedToShowFullScreenContent: (ad, error) {
-              debugPrint('AdService: Interstitial failed to show: $error');
-              ad.dispose();
-              _interstitialAd = null;
-              preloadInterstitial();
-            },
-          );
+                onAdDismissedFullScreenContent: (ad) {
+                  ad.dispose();
+                  _interstitialAd = null;
+                  preloadInterstitial();
+                },
+                onAdFailedToShowFullScreenContent: (ad, error) {
+                  debugPrint('AdService: Interstitial failed to show: $error');
+                  ad.dispose();
+                  _interstitialAd = null;
+                  preloadInterstitial();
+                },
+              );
         },
         onAdFailedToLoad: (error) {
           _isInterstitialLoading = false;
@@ -184,10 +184,13 @@ class AdService {
     Timer.periodic(const Duration(milliseconds: 150), (timer) {
       if (_interstitialAd != null) {
         timer.cancel();
-        showInterstitial(onDismiss: () {
-          if (!completer.isCompleted) completer.complete();
-        });
-      } else if (!_isInterstitialLoading || stopwatch.elapsedMilliseconds >= 3000) {
+        showInterstitial(
+          onDismiss: () {
+            if (!completer.isCompleted) completer.complete();
+          },
+        );
+      } else if (!_isInterstitialLoading ||
+          stopwatch.elapsedMilliseconds >= 3000) {
         timer.cancel();
         if (!completer.isCompleted) completer.complete();
       }
@@ -198,9 +201,11 @@ class AdService {
 
   Future<void> showInterstitialAsync() {
     final completer = Completer<void>();
-    showInterstitial(onDismiss: () {
-      if (!completer.isCompleted) completer.complete();
-    });
+    showInterstitial(
+      onDismiss: () {
+        if (!completer.isCompleted) completer.complete();
+      },
+    );
     return completer.future;
   }
 
