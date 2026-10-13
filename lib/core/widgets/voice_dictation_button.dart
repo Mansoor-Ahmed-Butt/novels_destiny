@@ -30,11 +30,16 @@ class VoiceDictationButton extends StatefulWidget {
 class _VoiceDictationButtonState extends State<VoiceDictationButton>
     with SingleTickerProviderStateMixin {
   final SpeechRecognitionService _speechService = SpeechRecognitionService();
+
+  // True only when the USER intentionally has voice active
   bool _isListening = false;
+  // True while we are mid-restart (auto-resume after pause timeout)
+  bool _isRestarting = false;
+
   late DictationLanguage _selectedLanguage;
 
-  String _baseTextBeforeSession = '';
-  String _confirmedSpeechInSession = '';
+  String _baseText = '';
+  String _currentUtterance = '';
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
@@ -55,20 +60,76 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
 
     _speechService.setStatusListener((status) {
       if (!mounted) return;
-      if (status == 'notListening' || status == 'done') {
-        if (_isListening) {
+
+      // When the native engine stops after a silence pause:
+      if ((status == 'notListening' || status == 'done') && _isListening && !_isRestarting) {
+        // 1. Commit any words spoken up to this pause into base text so they are NEVER wiped out
+        _commitCurrentSpeechToBase();
+
+        // 2. Silently auto-restart dictation preserving all text
+        _autoResumeListening();
+      }
+    });
+
+    _speechService.setErrorListener((error) {
+      if (!mounted) return;
+      _commitCurrentSpeechToBase();
+
+      // On silence timeout, attempt clean auto-resume; otherwise reset listening state
+      if (error.contains('timeout') && _isListening && !_isRestarting) {
+        _autoResumeListening();
+      } else if (!_isRestarting && mounted) {
+        if (_isListening && !_speechService.isListening) {
           setState(() => _isListening = false);
         }
       }
     });
   }
 
+  void _commitCurrentSpeechToBase() {
+    if (_currentUtterance.isNotEmpty) {
+      _baseText = _combine(_baseText, _currentUtterance);
+      _currentUtterance = '';
+    } else {
+      _baseText = widget.controller.text;
+    }
+  }
+
+  /// Called by the status listener when the engine stops due to pause timeout.
+  /// Re-launches listening WITHOUT resetting accumulated text.
+  Future<void> _autoResumeListening() async {
+    if (!mounted || !_isListening) return;
+    _isRestarting = true;
+
+    // Small pause to let the Android/iOS audio engine fully release mic hardware
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted || !_isListening) {
+      _isRestarting = false;
+      return;
+    }
+
+    _baseText = widget.controller.text;
+    _currentUtterance = '';
+
+    final result = await _speechService.startListeningDetailed(
+      language: _selectedLanguage,
+      onResult: (words, isFinal) => _handleSpeechResult(words, isFinal),
+    );
+
+    _isRestarting = false;
+
+    if ((!result.success || !_speechService.isListening) && mounted) {
+      // If mic could not resume, immediately stop listening state and turn off red glowing mic
+      setState(() => _isListening = false);
+    }
+  }
+
   @override
   void dispose() {
-    if (_isListening) {
-      _speechService.stopListening();
-    }
+    _isListening = false;
+    _speechService.stopListening();
     _speechService.setStatusListener(null);
+    _speechService.setErrorListener(null);
     _pulseController.dispose();
     super.dispose();
   }
@@ -88,8 +149,9 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
 
   Future<void> _restartListeningInNewLanguage(DictationLanguage lang) async {
     await _speechService.stopListening();
-    _baseTextBeforeSession = widget.controller.text;
-    _confirmedSpeechInSession = '';
+    _commitCurrentSpeechToBase();
+    _baseText = widget.controller.text;
+    _currentUtterance = '';
 
     final result = await _speechService.startListeningDetailed(
       language: lang,
@@ -103,25 +165,22 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
   }
 
   void _handleSpeechResult(String words, bool isFinal) {
-    if (!mounted || words.trim().isEmpty) return;
+    if (!mounted) return;
+    final cleanWords = words.trim();
+    if (cleanWords.isEmpty) return;
 
     if (isFinal) {
-      _confirmedSpeechInSession = _confirmedSpeechInSession.isEmpty
-          ? words.trim()
-          : '$_confirmedSpeechInSession ${words.trim()}';
-      final fullText = _combine(
-        _baseTextBeforeSession,
-        _confirmedSpeechInSession,
-      );
-      widget.controller.text = fullText;
+      // Completed utterance: freeze into base text permanently
+      _baseText = _combine(_baseText, cleanWords);
+      _currentUtterance = '';
+      widget.controller.text = _baseText;
       widget.controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: fullText.length),
+        TextPosition(offset: _baseText.length),
       );
     } else {
-      final currentPhrase = _confirmedSpeechInSession.isEmpty
-          ? words.trim()
-          : '$_confirmedSpeechInSession ${words.trim()}';
-      final fullText = _combine(_baseTextBeforeSession, currentPhrase);
+      // Live interim utterance: display on top of base text
+      _currentUtterance = cleanWords;
+      final fullText = _combine(_baseText, cleanWords);
       widget.controller.text = fullText;
       widget.controller.selection = TextSelection.fromPosition(
         TextPosition(offset: fullText.length),
@@ -142,26 +201,27 @@ class _VoiceDictationButtonState extends State<VoiceDictationButton>
 
   Future<void> _toggleListening() async {
     if (_isListening) {
+      // User explicitly tapped to stop
+      _isListening = false;
+      _commitCurrentSpeechToBase();
       await _speechService.stopListening();
-      if (mounted) {
-        setState(() => _isListening = false);
-      }
+      if (mounted) setState(() {});
       return;
     }
 
-    _baseTextBeforeSession = widget.controller.text;
-    _confirmedSpeechInSession = '';
+    // Snapshot current text in controller so dictated words are appended, never replaced
+    _baseText = widget.controller.text;
+    _currentUtterance = '';
 
     final result = await _speechService.startListeningDetailed(
       language: _selectedLanguage,
       onResult: (words, isFinal) => _handleSpeechResult(words, isFinal),
     );
 
-    if (result.success) {
-      if (mounted) {
-        setState(() => _isListening = true);
-      }
+    if (result.success && _speechService.isListening) {
+      if (mounted) setState(() => _isListening = true);
     } else {
+      if (mounted) setState(() => _isListening = false);
       _showVoiceUnavailableNotice(result);
     }
   }

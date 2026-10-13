@@ -11,6 +11,8 @@ import '../../../core/services/supabase_storage_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../domain/usecases/novel_usecases.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../writer_dashboard/controllers/writer_dashboard_controller.dart';
+import '../../admin_dashboard/controllers/admin_dashboard_controller.dart';
 
 class EpisodeEditorController extends GetxController {
   final String novelId;
@@ -331,6 +333,14 @@ class EpisodeEditorController extends GetxController {
           episodeTitle: titleController.text.trim(),
           writerName: user.displayName,
         );
+      }
+
+      // ── Refresh dashboards so episode count updates immediately ──
+      if (Get.isRegistered<WriterDashboardController>()) {
+        Get.find<WriterDashboardController>().loadDashboard();
+      }
+      if (Get.isRegistered<AdminDashboardController>()) {
+        Get.find<AdminDashboardController>().loadDashboard();
       }
 
       hasUnsavedChanges.value = false;

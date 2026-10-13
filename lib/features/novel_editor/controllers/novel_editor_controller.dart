@@ -302,7 +302,9 @@ class NovelEditorController extends GetxController {
       final tags = tagsController.text.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
 
       final typedManuscript = manuscriptController.text.trim();
-      final hasManuscript = typedManuscript.isNotEmpty;
+      final typedHook = descriptionController.text.trim();
+      final effectiveManuscript = typedManuscript.isNotEmpty ? typedManuscript : typedHook;
+      final hasManuscript = effectiveManuscript.isNotEmpty;
       final hasPdf = pdfUrl.value != null && pdfUrl.value!.isNotEmpty;
       final hasGallery = galleryImages.isNotEmpty;
 
@@ -331,7 +333,7 @@ class NovelEditorController extends GetxController {
         pdfUrl: pdfUrl.value,
         pdfStoragePath: pdfStoragePath.value,
         pdfFileName: pdfFileName.value,
-        manuscriptContent: hasManuscript ? typedManuscript : null,
+        manuscriptContent: hasManuscript ? effectiveManuscript : null,
         publishedEpisodeCount: initialEpisodeCount,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
@@ -349,7 +351,7 @@ class NovelEditorController extends GetxController {
       // If author typed a manuscript or uploaded a PDF or added gallery images,
       // ensure Chapter 1 exists so reader can immediately start reading!
       if (hasManuscript || hasPdf || hasGallery) {
-        await _syncInitialChapter(novel: novel, publishImmediately: publishImmediately, hasManuscript: hasManuscript, manuscriptText: typedManuscript, hasPdf: hasPdf, hasGallery: hasGallery);
+        await _syncInitialChapter(novel: novel, publishImmediately: publishImmediately, hasManuscript: hasManuscript, manuscriptText: effectiveManuscript, hasPdf: hasPdf, hasGallery: hasGallery);
       }
       if (_isDisposed) return;
 

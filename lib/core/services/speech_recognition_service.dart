@@ -50,6 +50,7 @@ class SpeechRecognitionService {
   bool _isInitialized = false;
   bool _isAvailable = false;
   ValueChanged<String>? _statusListener;
+  ValueChanged<String>? _errorListener;
 
   bool get isListening => _speech.isListening;
   bool get isAvailable => _isAvailable;
@@ -71,6 +72,10 @@ class SpeechRecognitionService {
     _statusListener = listener;
   }
 
+  void setErrorListener(ValueChanged<String>? listener) {
+    _errorListener = listener;
+  }
+
   Future<bool> initialize({bool forceRetry = false}) async {
     if (_isInitialized && _isAvailable && !forceRetry) return _isAvailable;
 
@@ -81,6 +86,7 @@ class SpeechRecognitionService {
           debugPrint(
             'SpeechRecognition error: ${err.errorMsg} (permanent: ${err.permanent})',
           );
+          _errorListener?.call(err.errorMsg);
         },
         onStatus: (status) {
           debugPrint('SpeechRecognition status: $status');
@@ -167,19 +173,25 @@ class SpeechRecognitionService {
         'SpeechRecognition startListening with locale: $resolvedLocale for ${language.name}',
       );
 
-      await _speech.listen(
+      final started = await _speech.listen(
         onResult: (result) {
           onResult(result.recognizedWords, result.finalResult);
         },
         listenOptions: stt.SpeechListenOptions(
           localeId: resolvedLocale,
           listenFor: const Duration(minutes: 15),
-          pauseFor: const Duration(seconds: 4),
+          pauseFor: const Duration(seconds: 8),
           partialResults: true,
           cancelOnError: false,
           listenMode: stt.ListenMode.dictation,
         ),
       );
+      if (started != true && !_speech.isListening) {
+        return const SpeechStartResult(
+          success: false,
+          message: 'Unable to start listening. Please try again.',
+        );
+      }
       return const SpeechStartResult(success: true);
     } catch (e) {
       debugPrint('SpeechRecognition startListening error: $e');

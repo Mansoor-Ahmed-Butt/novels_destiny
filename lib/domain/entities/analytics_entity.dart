@@ -86,6 +86,26 @@ class WriterAnalyticsEntity {
     required this.totalDownloads,
     required this.dailyReadsTrend,
   });
+
+  WriterAnalyticsEntity copyWith({
+    String? writerId,
+    int? totalNovels,
+    int? publishedEpisodes,
+    int? totalReads,
+    int? totalLikes,
+    int? totalDownloads,
+    List<DailyMetricPoint>? dailyReadsTrend,
+  }) {
+    return WriterAnalyticsEntity(
+      writerId: writerId ?? this.writerId,
+      totalNovels: totalNovels ?? this.totalNovels,
+      publishedEpisodes: publishedEpisodes ?? this.publishedEpisodes,
+      totalReads: totalReads ?? this.totalReads,
+      totalLikes: totalLikes ?? this.totalLikes,
+      totalDownloads: totalDownloads ?? this.totalDownloads,
+      dailyReadsTrend: dailyReadsTrend ?? this.dailyReadsTrend,
+    );
+  }
 }
 
 class DailyMetricPoint {

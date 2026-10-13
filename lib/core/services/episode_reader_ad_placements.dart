@@ -100,10 +100,9 @@ class EpisodeReaderAdPlacements {
     }
 
     // 4. Compute banner ad placement positions (strictly between story text)
-    // Every individual episode story contains 4 banner ads distributed between the text.
-    // NEVER placed at the top of the episode and NEVER at the end of the episode.
+    // Banner ads distributed between the text.
     final adSlots = <int>{};
-    if (injectAds && totalLines >= 4) {
+    if (injectAds && totalLines >= 1) {
       final assignedAdSlots = _calculateAdPositions(
         totalLines: totalLines,
         adCount: targetBannerAds,
@@ -128,7 +127,7 @@ class EpisodeReaderAdPlacements {
         remainingImages.remove(img);
       }
 
-      // Check for banner ad after this line (strictly between story text, never on top or at end)
+      // Check for banner ad after this line
       if (adSlots.contains(i) && !imageSlots.containsKey(i)) {
         result.add(
           ContentBlockEntity(
@@ -141,6 +140,11 @@ class EpisodeReaderAdPlacements {
         );
         adSlotCounter++;
       }
+    }
+
+    // Append any manual author ad placements
+    for (final ad in manualAdBlocks) {
+      result.add(ad);
     }
 
     // Append any leftover illustration images that couldn't fit in the text
@@ -192,22 +196,25 @@ class EpisodeReaderAdPlacements {
     required Set<int> occupiedImageSlots,
   }) {
     final positions = <int>[];
-    if (adCount <= 0 || totalLines <= 1) return positions;
+    if (adCount <= 0 || totalLines <= 0) return positions;
 
-    // Never place an ad after the final line (totalLines - 1),
-    // because that would place the ad after the story has finished.
-    // The maximum index for an inline ad is totalLines - 2.
-    final maxAllowedIndex = totalLines - 2;
-    if (maxAllowedIndex < 1) {
-      if (totalLines >= 2 && !occupiedImageSlots.contains(0)) {
-        return [0];
-      }
-      return [];
+    // For single-line stories, place ad below the line
+    if (totalLines == 1) {
+      return [0];
     }
 
+    // For short stories with 2 or 3 lines
+    if (totalLines <= 3) {
+      final slot = occupiedImageSlots.contains(0) ? 1 : 0;
+      if (slot < totalLines) {
+        positions.add(slot);
+      }
+      return positions;
+    }
+
+    final maxAllowedIndex = totalLines - 2;
     final actualAdCount = min(adCount, maxAllowedIndex);
 
-    // The first ad can NEVER appear at the top of the episode (line 0).
     // Ensure story prose is read before the first ad.
     final firstAdMinIndex = totalLines >= 20 ? 3 : (totalLines >= 10 ? 2 : 1);
 

@@ -139,10 +139,34 @@ class FirestoreDataSource {
 
   Future<List<NovelModel>> getNovelsByWriter(String writerId) async {
     final col = _novelsCol;
+    final epCol = _episodesCol;
     if (col == null) return [];
     try {
       final snapshot = await col.where('writerId', isEqualTo: writerId).get();
-      return snapshot.docs.map((d) => NovelModel.fromJson(d.data())).toList();
+      final novels = <NovelModel>[];
+      for (final d in snapshot.docs) {
+        var novel = NovelModel.fromJson(d.data());
+        if (epCol != null) {
+          try {
+            final epSnap = await epCol.where('novelId', isEqualTo: novel.id).get();
+            final actualPubCount = epSnap.docs
+                .where((epDoc) => epDoc.data()['status'] == 'published')
+                .length;
+            if (actualPubCount != novel.publishedEpisodeCount) {
+              novel = NovelModel.fromEntity(
+                novel.copyWith(publishedEpisodeCount: actualPubCount),
+              );
+              // Sync Firestore novel doc in background
+              col.doc(novel.id).update({
+                'publishedEpisodeCount': actualPubCount,
+                'updatedAt': FieldValue.serverTimestamp(),
+              }).catchError((_) {});
+            }
+          } catch (_) {}
+        }
+        novels.add(novel);
+      }
+      return novels;
     } catch (e) {
       debugPrint('Firestore getNovelsByWriter warning: $e');
       return [];
@@ -273,6 +297,22 @@ class FirestoreDataSource {
         batch.set(blocksRef.doc(block.id), blockModel.toJson(), SetOptions(merge: true));
       }
       await batch.commit();
+
+      // Automatically recalculate and sync novel's publishedEpisodeCount in Firestore
+      final snap = await col.where('novelId', isEqualTo: episode.novelId).get();
+      int pubCount = 0;
+      for (final d in snap.docs) {
+        if (d.data()['status'] == 'published') {
+          pubCount++;
+        }
+      }
+      final novelCol = _novelsCol;
+      if (novelCol != null) {
+        await novelCol.doc(episode.novelId).update({
+          'publishedEpisodeCount': pubCount,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
       debugPrint('Firestore saveEpisode warning: $e');
     }
@@ -351,9 +391,25 @@ class FirestoreDataSource {
 
   Future<void> deleteEpisode(String episodeId) async {
     final col = _episodesCol;
+    final novelCol = _novelsCol;
     if (col == null) return;
     try {
+      final doc = await col.doc(episodeId).get();
+      final novelId = doc.data()?['novelId'] as String?;
       await col.doc(episodeId).delete();
+      if (novelId != null && novelCol != null) {
+        final snap = await col.where('novelId', isEqualTo: novelId).get();
+        int pubCount = 0;
+        for (final d in snap.docs) {
+          if (d.data()['status'] == 'published') {
+            pubCount++;
+          }
+        }
+        await novelCol.doc(novelId).update({
+          'publishedEpisodeCount': pubCount,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
       debugPrint('Firestore deleteEpisode warning: $e');
     }

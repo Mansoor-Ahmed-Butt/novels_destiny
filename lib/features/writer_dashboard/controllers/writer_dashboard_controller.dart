@@ -54,7 +54,17 @@ class WriterDashboardController extends GetxController {
       final stats = await _writerUseCases.getWriterAnalytics(user.id);
 
       myNovels.assignAll(novels);
-      analytics.value = stats;
+
+      // Compute total published episodes directly across all author novels
+      final totalPublished = novels.fold<int>(
+        0,
+        (sum, n) => sum + n.publishedEpisodeCount,
+      );
+
+      analytics.value = stats.copyWith(
+        totalNovels: novels.length,
+        publishedEpisodes: totalPublished,
+      );
 
       isLoading.value = false;
     } catch (e) {
@@ -63,19 +73,23 @@ class WriterDashboardController extends GetxController {
     }
   }
 
-  void createNewNovel() {
-    Get.toNamed(AppRoutes.novelEditor());
+  void createNewNovel() async {
+    await Get.toNamed(AppRoutes.novelEditor());
+    loadDashboard();
   }
 
-  void editNovel(NovelEntity novel) {
-    Get.toNamed(AppRoutes.novelEditor(novelId: novel.id));
+  void editNovel(NovelEntity novel) async {
+    await Get.toNamed(AppRoutes.novelEditor(novelId: novel.id));
+    loadDashboard();
   }
 
-  void createEpisode(NovelEntity novel) {
-    Get.toNamed(AppRoutes.episodeEditor(novelId: novel.id));
+  void createEpisode(NovelEntity novel) async {
+    await Get.toNamed(AppRoutes.episodeEditor(novelId: novel.id));
+    loadDashboard();
   }
 
-  void viewNovel(NovelEntity novel) {
-    Get.toNamed(AppRoutes.novelDetails(novel.id));
+  void viewNovel(NovelEntity novel) async {
+    await Get.toNamed(AppRoutes.novelDetails(novel.id));
+    loadDashboard();
   }
 }

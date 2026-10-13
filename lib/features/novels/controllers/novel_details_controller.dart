@@ -47,10 +47,14 @@ class NovelDetailsController extends GetxController {
 
       var episodes = await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: true);
 
-      // Auto-fallback: If no episodes exist but novel has manuscript, PDF, or gallery,
+      final effectiveStoryProse = (novel.manuscriptContent != null && novel.manuscriptContent!.isNotEmpty)
+          ? novel.manuscriptContent!
+          : (novel.description.isNotEmpty ? novel.description : '');
+
+      // Auto-fallback: If no episodes exist but novel has story prose, PDF, or gallery,
       // create Chapter 1 so the reader can start reading immediately!
       if (episodes.isEmpty &&
-          ((novel.manuscriptContent != null && novel.manuscriptContent!.isNotEmpty) ||
+          (effectiveStoryProse.isNotEmpty ||
               (novel.pdfUrl != null && novel.pdfUrl!.isNotEmpty) ||
               novel.galleryImageUrls.isNotEmpty)) {
         final blocks = <ContentBlockEntity>[];
@@ -69,14 +73,14 @@ class NovelDetailsController extends GetxController {
           );
         }
 
-        if (novel.manuscriptContent != null && novel.manuscriptContent!.isNotEmpty) {
+        if (effectiveStoryProse.isNotEmpty) {
           blocks.add(
             ContentBlockEntity(
               id: 'block_text_main',
               episodeId: 'ep_complete',
               type: ContentBlockType.text,
               order: blockOrder++,
-              content: novel.manuscriptContent!,
+              content: effectiveStoryProse,
             ),
           );
         }
@@ -99,14 +103,14 @@ class NovelDetailsController extends GetxController {
           novelId: novelId,
           writerId: novel.writerId,
           episodeNumber: 1,
-          title: novel.pdfUrl != null && (novel.manuscriptContent == null || novel.manuscriptContent!.isEmpty)
+          title: novel.pdfUrl != null && effectiveStoryProse.isEmpty
               ? 'Complete Novel (PDF Edition)'
               : 'Complete Story: ${novel.title}',
           titleLowercase: 'complete story: ${novel.title.toLowerCase()}',
           summary: novel.description,
-          content: novel.manuscriptContent ?? '',
+          content: effectiveStoryProse,
           blocks: blocks,
-          wordCount: (novel.manuscriptContent ?? '').split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length,
+          wordCount: effectiveStoryProse.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length,
           status: EpisodeStatus.published,
           createdAt: novel.createdAt,
           updatedAt: novel.updatedAt,
@@ -267,20 +271,26 @@ class NovelDetailsController extends GetxController {
       return;
     }
 
+    // ── Optimistic update: fill stars instantly, no waiting for network ──
+    final previousRating = userRating.value;
+    userRating.value = stars;
+    isSubmittingRating.value = true;
+
     try {
-      isSubmittingRating.value = true;
       final updatedNovel = await _novelUseCases.rateNovel(novelId, user.id, stars);
-      userRating.value = stars;
+      // Sync the global novel state with server-computed average
       state.value = current.copyWith(novel: updatedNovel);
-      isSubmittingRating.value = false;
       Get.snackbar(
         'Rating Submitted',
         'Thank you! You rated "${updatedNovel.title}" $stars ★',
         snackPosition: SnackPosition.BOTTOM,
       );
     } catch (e) {
-      isSubmittingRating.value = false;
+      // Roll back optimistic update on failure
+      userRating.value = previousRating;
       Get.snackbar('Error', 'Failed to submit rating: $e');
+    } finally {
+      isSubmittingRating.value = false;
     }
   }
 
