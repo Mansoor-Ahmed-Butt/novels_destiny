@@ -72,8 +72,17 @@ class UserRepositoryImpl implements IUserRepository {
   @override
   Future<void> approveWriter(String id) async {
     try {
-      _dataSource.approveWriter(id);
+      // Update Firestore first (source of truth)
       await _firestore.updateUserApprovalStatus(id, ApprovalStatus.approved.name);
+      // Update in-memory cache
+      final cached = _dataSource.getUserById(id);
+      if (cached != null) {
+        final updated = cached.copyWith(
+          approvalStatus: ApprovalStatus.approved,
+          updatedAt: DateTime.now(),
+        ) as UserModel;
+        _dataSource.updateUser(updated);
+      }
     } catch (e) {
       throw UnknownFailure('Failed to approve writer: $e');
     }
@@ -82,8 +91,17 @@ class UserRepositoryImpl implements IUserRepository {
   @override
   Future<void> rejectWriter(String id) async {
     try {
-      _dataSource.rejectWriter(id);
+      // Update Firestore first (source of truth)
       await _firestore.updateUserApprovalStatus(id, ApprovalStatus.rejected.name);
+      // Update in-memory cache
+      final cached = _dataSource.getUserById(id);
+      if (cached != null) {
+        final updated = cached.copyWith(
+          approvalStatus: ApprovalStatus.rejected,
+          updatedAt: DateTime.now(),
+        ) as UserModel;
+        _dataSource.updateUser(updated);
+      }
     } catch (e) {
       throw UnknownFailure('Failed to reject writer: $e');
     }

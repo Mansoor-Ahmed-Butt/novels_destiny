@@ -460,33 +460,38 @@ class _EmptyCarouselPlaceholder extends StatelessWidget {
       height: 300,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.xl),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.yellow, Colors.orange],
-        ),
+        color: AppColors.surfaceMuted,
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.library_books_outlined,
-            size: 56,
-            color: AppColors.accent,
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: const Icon(
+              Icons.auto_stories_outlined,
+              size: 40,
+              color: AppColors.textTertiary,
+            ),
           ),
           const SizedBox(height: 16),
           Text(
-            'No stories published yet',
-            style: AppTextStyles.titleMedium.copyWith(
-              color: AppColors.textPrimary,
+            'No featured stories yet',
+            style: AppTextStyles.titleSmall.copyWith(
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
             child: Text(
-              'Admin or writers can publish novels from the Studio tab.',
+              'Writers can publish novels from the Studio tab.',
               textAlign: TextAlign.center,
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textTertiary,

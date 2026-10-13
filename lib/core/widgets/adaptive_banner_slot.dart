@@ -50,13 +50,20 @@ class _AdaptiveBannerSlotState extends State<AdaptiveBannerSlot> {
         if (!mounted) return;
         setState(() => _isLoaded = true);
       },
-      onAdFailedToLoad: (_) {
+      onAdFailedToLoad: (err) {
+        debugPrint('AdaptiveBannerSlot: Failed to load banner [${widget.placementKey}]: $err');
         if (!mounted) return;
-        setState(() => _isLoaded = false);
+        _bannerAd?.dispose();
+        setState(() {
+          _bannerAd = null;
+          _isLoaded = false;
+        });
       },
     );
 
-    if (ad == null || !mounted) return;
+    if (ad == null || !mounted) {
+      return;
+    }
 
     setState(() {
       _adSize = size;
@@ -81,6 +88,8 @@ class _AdaptiveBannerSlotState extends State<AdaptiveBannerSlot> {
     final ad = _bannerAd;
     final size = _adSize;
 
+    // Only show the container when the ad is fully loaded — hide in all other states
+    // (loading, failed, not started). This prevents grey boxes from appearing.
     if (_isLoaded && ad != null && size != null) {
       return Container(
         key: ValueKey(widget.placementKey),
@@ -92,18 +101,7 @@ class _AdaptiveBannerSlotState extends State<AdaptiveBannerSlot> {
       );
     }
 
-    if (ad == null) return const SizedBox.shrink();
-
-    return SizedBox(
-      key: ValueKey('${widget.placementKey}_loading'),
-      height: 50,
-      child: const Center(
-        child: SizedBox(
-          width: 22,
-          height: 22,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-      ),
-    );
+    // Hide while loading, failed, or not yet started — no spinner, no grey box
+    return const SizedBox.shrink();
   }
 }

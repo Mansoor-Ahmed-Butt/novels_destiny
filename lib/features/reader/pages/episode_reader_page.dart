@@ -16,6 +16,7 @@ import '../../auth/controllers/auth_controller.dart';
 import '../widgets/reader_inline_banner_ad.dart';
 import '../../../core/widgets/app_adaptive_image.dart';
 import '../../../core/utils/novel_text_helper.dart';
+import '../../../core/services/supabase_storage_service.dart';
 
 class EpisodeReaderPage extends StatelessWidget {
   const EpisodeReaderPage({super.key});
@@ -421,25 +422,44 @@ class EpisodeReaderPage extends StatelessWidget {
           break;
 
         case ContentBlockType.image:
-          final imageUrl = block.url ?? '';
-          if (imageUrl.isNotEmpty) {
+          // Resolve the best available image URL:
+          // 1. Prefer block.url if it's already an https URL (Supabase public URL)
+          // 2. Fallback: regenerate public URL from storagePath (handles cases where
+          //    upload succeeded but url was saved as a local device path)
+          String imageUrl = block.url ?? '';
+          if (!imageUrl.startsWith('http') && (block.storagePath?.isNotEmpty ?? false)) {
+            final regenerated = SupabaseStorageService().getPublicUrl(block.storagePath!);
+            if (regenerated.isNotEmpty) imageUrl = regenerated;
+          }
+
+          if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+            // Only show caption if it's NOT a raw filename (has no extension like .jpg/.png)
+            final caption = block.caption;
+            final isRawFilename = caption != null &&
+                (caption.endsWith('.jpg') || caption.endsWith('.jpeg') ||
+                 caption.endsWith('.png') || caption.endsWith('.webp') ||
+                 caption.endsWith('.gif'));
+            final displayCaption = isRawFilename ? null : caption;
+
             widgets.add(
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: AppSpacing.l),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    AppAdaptiveImage(
-                      url: imageUrl,
-                      fit: BoxFit.cover,
+                    ClipRRect(
                       borderRadius: BorderRadius.circular(AppRadii.m),
-                      width: double.infinity,
+                      child: AppAdaptiveImage(
+                        url: imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 250,
+                      ),
                     ),
-                    if (block.caption != null &&
-                        block.caption!.trim().isNotEmpty) ...[
+                    if (displayCaption != null && displayCaption.trim().isNotEmpty) ...[
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        block.caption!,
+                        displayCaption,
                         style: AppTextStyles.bodySmall.copyWith(
                           fontStyle: FontStyle.italic,
                           color: theme.textColor.withValues(alpha: 0.7),

@@ -53,8 +53,20 @@ class HomeController extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      final featured = await _novelUseCases.getFeaturedNovels();
-      final trending = await _novelUseCases.getTrendingNovels();
+      // Short delay on cold start — Firebase auth token may not be ready
+      // before the first Firestore call, causing empty results silently.
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      List<NovelEntity> featured = await _novelUseCases.getFeaturedNovels();
+      List<NovelEntity> trending = await _novelUseCases.getTrendingNovels();
+
+      // If empty, Firestore might still be initializing — retry once
+      if (featured.isEmpty) {
+        await Future.delayed(const Duration(milliseconds: 600));
+        featured = await _novelUseCases.getFeaturedNovels();
+        trending = await _novelUseCases.getTrendingNovels();
+      }
+
       featuredNovels.assignAll(featured);
       trendingNovels.assignAll(trending);
 
@@ -62,17 +74,21 @@ class HomeController extends GetxController {
       final authController = Get.find<AuthController>();
       final currentUser = authController.currentUser.value;
       if (currentUser != null) {
-        final history = await _novelUseCases.getReadingHistory(currentUser.id);
-        readingHistory.assignAll(history);
+        try {
+          final history = await _novelUseCases.getReadingHistory(currentUser.id);
+          readingHistory.assignAll(history);
 
-        // Fetch novel entities for history items
-        for (final prog in history) {
-          if (!historyNovelMap.containsKey(prog.novelId)) {
-            final novel = await _novelUseCases.getNovelById(prog.novelId);
-            if (novel != null) {
-              historyNovelMap[prog.novelId] = novel;
+          // Fetch novel entities for history items
+          for (final prog in history) {
+            if (!historyNovelMap.containsKey(prog.novelId)) {
+              final novel = await _novelUseCases.getNovelById(prog.novelId);
+              if (novel != null) {
+                historyNovelMap[prog.novelId] = novel;
+              }
             }
           }
+        } catch (historyErr) {
+          _logger.warning('Reading history load failed (non-critical): $historyErr');
         }
       }
 

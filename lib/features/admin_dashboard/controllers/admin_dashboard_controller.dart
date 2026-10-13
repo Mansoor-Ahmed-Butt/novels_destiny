@@ -174,6 +174,7 @@ class AdminDashboardController extends GetxController {
     );
   }
 
+
   Future<void> approveWriter(UserEntity writer) async {
     try {
       await _adminUseCases.approveWriter(writer.id);
@@ -188,7 +189,12 @@ class AdminDashboardController extends GetxController {
         snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to approve writer');
+      _logger.error('approveWriter failed for ${writer.id}', e);
+      Get.snackbar(
+        'Error',
+        'Failed to approve writer. Check permissions.',
+        snackPosition: SnackPosition.TOP,
+      );
     }
   }
 
@@ -206,7 +212,12 @@ class AdminDashboardController extends GetxController {
         snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
-      Get.snackbar('Error', 'Failed to reject writer');
+      _logger.error('rejectWriter failed for ${writer.id}', e);
+      Get.snackbar(
+        'Error',
+        'Failed to reject writer. Check permissions.',
+        snackPosition: SnackPosition.TOP,
+      );
     }
   }
 

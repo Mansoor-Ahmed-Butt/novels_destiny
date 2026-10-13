@@ -81,7 +81,8 @@ class FirestoreDataSource {
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      debugPrint('Firestore updateUserApprovalStatus warning: $e');
+      debugPrint('Firestore updateUserApprovalStatus error: $e');
+      rethrow; // Let caller handle — admin controller shows error snackbar
     }
   }
 

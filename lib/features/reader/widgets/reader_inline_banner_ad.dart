@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd>
   bool _isLoaded = false;
   bool _failed = false;
   bool _isDisposed = false;
+  Timer? _timeoutTimer;
 
   @override
   bool get wantKeepAlive => true;
@@ -49,10 +51,12 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd>
     if (_isDisposed) return;
     final ad = AdService().createBannerAd(
       onAdLoaded: () {
+        _timeoutTimer?.cancel();
         if (!mounted || _isDisposed) return;
         setState(() => _isLoaded = true);
       },
       onAdFailedToLoad: (err) {
+        _timeoutTimer?.cancel();
         debugPrint('ReaderInlineBannerAd: Failed to load banner ad for ${widget.slotKey}: $err');
         if (!mounted || _isDisposed) return;
         setState(() {
@@ -71,11 +75,18 @@ class _ReaderInlineBannerAdState extends State<ReaderInlineBannerAd>
 
     _bannerAd = ad;
     ad.load();
+
+    // 5-second timeout — hide spinner if ad never loads
+    _timeoutTimer = Timer(const Duration(seconds: 5), () {
+      if (!mounted || _isDisposed || _isLoaded) return;
+      setState(() => _failed = true);
+    });
   }
 
   @override
   void dispose() {
     _isDisposed = true;
+    _timeoutTimer?.cancel();
     _bannerAd?.dispose();
     _bannerAd = null;
     super.dispose();
