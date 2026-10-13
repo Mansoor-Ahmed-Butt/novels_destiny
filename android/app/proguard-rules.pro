@@ -46,4 +46,10 @@
 -keepattributes SourceFile,LineNumberTable
 -keep public class * extends java.lang.Exception
 
+# Flutter assets & font preservation
+-keepclassmembers class * extends android.content.Context {
+   public void *serialize*(...);
+}
+
+
 

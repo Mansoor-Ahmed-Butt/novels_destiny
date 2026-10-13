@@ -24,7 +24,7 @@ class AppConstants {
 
   // Google Auth Server Client ID (Web Client ID from Firebase / Google Cloud Console)
   static const String defaultGoogleServerClientId =
-      '454348386247-acoi211ubonk0pooshljofr6fugh4ac7.apps.googleusercontent.com';
+      '211813976263-qthogtunh9phc5979j787uo7jt6jcjbd.apps.googleusercontent.com';
 
   // Session Storage
   static const String userSessionStorageKey = 'novels_destiny_auth_session';
