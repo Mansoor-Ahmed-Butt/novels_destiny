@@ -31,10 +31,7 @@ class HomePage extends GetView<HomeController> {
         }
 
         if (controller.errorMessage.isNotEmpty) {
-          return AppErrorState(
-            message: controller.errorMessage.value,
-            onRetry: controller.loadHomeData,
-          );
+          return AppErrorState(message: controller.errorMessage.value, onRetry: controller.loadHomeData);
         }
 
         final user = authController.currentUser.value;
@@ -42,151 +39,107 @@ class HomePage extends GetView<HomeController> {
         return RefreshIndicator(
           onRefresh: controller.loadHomeData,
           color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.l,
-              vertical: AppSpacing.l,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: AppBreakpoints.maxCardGridWidth,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Top App Header with user greeting
-                    AppPageHeader(
-                      title: user != null
-                          ? 'Hello, ${user.displayName.split(' ').first}'
-                          : 'Novels Destiny',
-                      subtitle: 'Find your next captivating story',
-                      badgeText: user?.role.displayName.toUpperCase(),
-                      trailing: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceMuted,
-                              borderRadius: BorderRadius.circular(
-                                AppRadii.pill,
-                              ),
-                              border: Border.all(color: AppColors.cardBorder),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.success,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Sep 2026',
-                                  style: AppTextStyles.labelSmall.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Search bar
-                    AppSearchField(
-                      hint: 'Search title, writer, or tag...',
-                      onChanged: controller.onSearchChanged,
-                      onClear: () => controller.onSearchChanged(''),
-                    ),
-                    const SizedBox(height: AppSpacing.l),
-
-                    // Search Mode vs Normal Mode
-                    Obx(() {
-                      if (controller.isSearching.value) {
-                        return _buildSearchResults();
-                      }
-
-                      return Obx(() {
-                        final selectedGenre = controller.selectedGenre.value;
-
-                        if (selectedGenre != 'All') {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.l),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: AppBreakpoints.maxCardGridWidth, minHeight: constraints.maxHeight),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top App Header with user greeting
+                        AppPageHeader(
+                          title: user != null ? 'Hello, ${user.displayName.split(' ').first}' : 'Novels Destiny',
+                          subtitle: 'Find your next captivating story',
+                          badgeText: user?.role.displayName.toUpperCase(),
+                          trailing: Row(
                             children: [
-                              GenreFilterSection(
-                                genres: controller.availableGenres,
-                                selectedGenre: selectedGenre,
-                                onSelectGenre: controller.selectGenre,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceMuted,
+                                  borderRadius: BorderRadius.circular(AppRadii.pill),
+                                  border: Border.all(color: AppColors.cardBorder),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(color: AppColors.success, shape: BoxShape.circle),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Sep 2026',
+                                      style: AppTextStyles.labelSmall.copyWith(fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: AppSpacing.l),
-                              _buildGenreNovelsSection(),
                             ],
-                          );
-                        }
+                          ),
+                        ),
 
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Genre filter chips
-                            GenreFilterSection(
-                              genres: controller.availableGenres,
-                              selectedGenre: selectedGenre,
-                              onSelectGenre: controller.selectGenre,
-                            ),
-                            const SizedBox(height: AppSpacing.l),
+                        // Search bar
+                        AppSearchField(hint: 'Search title, writer, or tag...', onChanged: controller.onSearchChanged, onClear: () => controller.onSearchChanged('')),
+                        const SizedBox(height: AppSpacing.l),
 
-                            // Featured Banner Carousel — only render when novels are loaded
-                            Obx(() => HomeCarouselSlider(
-                              novels: List.unmodifiable(controller.featuredNovels),
-                              onNovelTap: controller.openNovel,
-                            )),
-                            const SizedBox(height: AppSpacing.xl),
+                        // Search Mode vs Normal Mode
+                        Obx(() {
+                          if (controller.isSearching.value) {
+                            return _buildSearchResults();
+                          }
 
-                            // Continue Reading (if any)
-                            Obx(() => ContinueReadingSection(
-                              history: controller.readingHistory,
-                              novelMap: controller.historyNovelMap,
-                              onResumeTap: controller.resumeReading,
-                            )),
-                            Obx(() => controller.readingHistory.isNotEmpty
-                                ? const SizedBox(height: AppSpacing.xl)
-                                : const SizedBox.shrink()),
+                          return Obx(() {
+                            final selectedGenre = controller.selectedGenre.value;
 
-                            // Featured Hero Section
-                            Obx(() => HomeHeroSection(
-                              novels: List.unmodifiable(controller.featuredNovels),
-                              onNovelTap: controller.openNovel,
-                            )),
-                            const SizedBox(height: AppSpacing.xxl),
+                            if (selectedGenre != 'All') {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  GenreFilterSection(genres: controller.availableGenres, selectedGenre: selectedGenre, onSelectGenre: controller.selectGenre),
+                                  const SizedBox(height: AppSpacing.l),
+                                  _buildGenreNovelsSection(),
+                                ],
+                              );
+                            }
 
-                            // Trending Grid
-                            Obx(() => TrendingNovelsSection(
-                              novels: List.unmodifiable(controller.trendingNovels),
-                              onNovelTap: controller.openNovel,
-                            )),
-                            AdaptiveBannerSlot(
-                              placementKey: 'home_footer',
-                              userRole: user?.role,
-                            ),
-                            const SizedBox(height: AppSpacing.xxxl),
-                          ],
-                        );
-                      });
-                    }),
-                  ],
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Genre filter chips
+                                GenreFilterSection(genres: controller.availableGenres, selectedGenre: selectedGenre, onSelectGenre: controller.selectGenre),
+                                const SizedBox(height: AppSpacing.l),
+
+                                // Featured Banner Carousel — only render when novels are loaded
+                                Obx(() => HomeCarouselSlider(novels: List.unmodifiable(controller.featuredNovels), onNovelTap: controller.openNovel)),
+                                const SizedBox(height: AppSpacing.xl),
+
+                                // Continue Reading (if any)
+                                Obx(() => ContinueReadingSection(history: controller.readingHistory, novelMap: controller.historyNovelMap, onResumeTap: controller.resumeReading)),
+                                Obx(() => controller.readingHistory.isNotEmpty ? const SizedBox(height: AppSpacing.xl) : const SizedBox.shrink()),
+
+                                // Featured Hero Section
+                                Obx(() => HomeHeroSection(novels: List.unmodifiable(controller.featuredNovels), onNovelTap: controller.openNovel)),
+                                const SizedBox(height: AppSpacing.xxl),
+
+                                // Trending Grid
+                                Obx(() => TrendingNovelsSection(novels: List.unmodifiable(controller.trendingNovels), onNovelTap: controller.openNovel)),
+                                AdaptiveBannerSlot(placementKey: 'home_footer', userRole: user?.role),
+                                const SizedBox(height: AppSpacing.xxxl),
+                              ],
+                            );
+                          });
+                        }),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         );
       }),
@@ -196,23 +149,13 @@ class HomePage extends GetView<HomeController> {
   Widget _buildSearchResults() {
     final results = controller.searchResults;
     if (results.isEmpty) {
-      return const AppEmptyState(
-        title: 'No stories found',
-        message:
-            'Try adjusting your search keywords or exploring different genres.',
-        icon: Icons.search_off_rounded,
-      );
+      return const AppEmptyState(title: 'No stories found', message: 'Try adjusting your search keywords or exploring different genres.', icon: Icons.search_off_rounded);
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Search Results (${results.length})',
-          style: AppTextStyles.titleMedium.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        Text('Search Results (${results.length})', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w700)),
         const SizedBox(height: AppSpacing.m),
         ListView.separated(
           shrinkWrap: true,
@@ -221,11 +164,7 @@ class HomePage extends GetView<HomeController> {
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) {
             final novel = results[index];
-            return NovelCard(
-              novel: novel,
-              variant: NovelCardVariant.list,
-              onTap: () => controller.openNovel(novel),
-            );
+            return NovelCard(novel: novel, variant: NovelCardVariant.list, onTap: () => controller.openNovel(novel));
           },
         ),
       ],
@@ -245,13 +184,7 @@ class HomePage extends GetView<HomeController> {
     final novels = controller.genreNovels;
 
     if (novels.isEmpty) {
-      return AppEmptyState(
-        title: 'No $genre Stories Yet',
-        message: 'No published stories found under "$genre". Writers can publish the very first novel here!',
-        icon: Icons.auto_stories_outlined,
-        actionLabel: 'Explore All Stories',
-        onAction: () => controller.selectGenre('All'),
-      );
+      return AppEmptyState(title: 'No $genre Stories Yet', message: 'No published stories found under "$genre". Writers can publish the very first novel here!', icon: Icons.auto_stories_outlined, actionLabel: 'Explore All Stories', onAction: () => controller.selectGenre('All'));
     }
 
     return Column(
@@ -263,16 +196,8 @@ class HomePage extends GetView<HomeController> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$genre Stories',
-                  style: AppTextStyles.titleMedium.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '${novels.length} ${novels.length == 1 ? "story" : "stories"} found',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
-                ),
+                Text('$genre Stories', style: AppTextStyles.titleMedium.copyWith(fontWeight: FontWeight.w700)),
+                Text('${novels.length} ${novels.length == 1 ? "story" : "stories"} found', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary)),
               ],
             ),
             TextButton.icon(
@@ -291,11 +216,7 @@ class HomePage extends GetView<HomeController> {
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) {
             final novel = novels[index];
-            return NovelCard(
-              novel: novel,
-              variant: NovelCardVariant.list,
-              onTap: () => controller.openNovel(novel),
-            );
+            return NovelCard(novel: novel, variant: NovelCardVariant.list, onTap: () => controller.openNovel(novel));
           },
         ),
         const SizedBox(height: AppSpacing.xxl),

@@ -7,6 +7,7 @@ import '../sources/firestore_data_source.dart';
 import '../models/episode_model.dart';
 import '../../core/errors/failures.dart';
 import '../../core/services/supabase_storage_service.dart';
+import '../../core/utils/content_block_url_resolver.dart';
 import '../../core/services/notification_service.dart';
 
 class EpisodeRepositoryImpl implements IEpisodeRepository {
@@ -31,13 +32,24 @@ class EpisodeRepositoryImpl implements IEpisodeRepository {
     try {
       final remote = await _firestore.getEpisode(episodeId);
       if (remote != null) {
-        await _dataSource.saveEpisode(remote);
-        return remote;
+        final hydrated = _hydrateEpisodeMediaUrls(remote);
+        await _dataSource.saveEpisode(hydrated);
+        return hydrated;
       }
-      return await _dataSource.getEpisodeById(novelId, episodeId);
+      final local = await _dataSource.getEpisodeById(novelId, episodeId);
+      return local != null ? _hydrateEpisodeMediaUrls(local) : null;
     } catch (e) {
       throw UnknownFailure('Failed to fetch chapter: $e');
     }
+  }
+
+  EpisodeModel _hydrateEpisodeMediaUrls(EpisodeModel episode) {
+    if (episode.blocks.isEmpty) return episode;
+    return EpisodeModel.fromEntity(
+      episode.copyWith(
+        blocks: ContentBlockUrlResolver.hydrateBlocks(episode.blocks),
+      ),
+    );
   }
 
   @override

@@ -1,0 +1,25 @@
+test/features/reader/episode_reader_image_ad_rendering_test.dart:31:3: Error: 'class' can't be used as an identifier because it's a keyword.
+Try renaming this to be an identifier that isn't a keyword.
+  class MockEpisodeReaderController {
+  ^^^^^
+test/features/reader/episode_reader_image_ad_rendering_test.dart:31:3: Error: Expected ';' after this.
+  class MockEpisodeReaderController {
+  ^^^^^
+test/features/reader/episode_reader_image_ad_rendering_test.dart:31:3: Error: Undefined name 'class'.
+  class MockEpisodeReaderController {
+  ^^^^^
+test/features/reader/episode_reader_image_ad_rendering_test.dart:31:9: Error: Expected ';' after this.
+  class MockEpisodeReaderController {
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/features/reader/episode_reader_image_ad_rendering_test.dart:31:9: Error: Undefined name 'MockEpisodeReaderController'.
+  class MockEpisodeReaderController {
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/features/reader/episode_reader_image_ad_rendering_test.dart:34:24: Error: Undefined name 'ReaderFontFamily'.
+    final fontFamily = ReaderFontFamily.sans;
+                       ^^^^^^^^^^^^^^^^
+test/features/reader/episode_reader_image_ad_rendering_test.dart:38:10: Error: 'ReaderColorTheme' isn't a type.
+    late ReaderColorTheme theme;
+         ^^^^^^^^^^^^^^^^
+test/features/reader/episode_reader_image_ad_rendering_test.dart:41:15: Error: Undefined name 'ReaderColorTheme'.
+      theme = ReaderColorTheme.cream;
+              ^^^^^^^^^^^^^^^^

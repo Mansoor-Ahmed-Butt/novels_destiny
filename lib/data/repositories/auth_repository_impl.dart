@@ -20,7 +20,7 @@ class AuthRepositoryImpl implements IAuthRepository {
   final FirestoreDataSource _firestore = FirestoreDataSource();
   final SessionService _sessionService = SessionService();
   static bool _googleSignInInitialized = false;
-  
+
   FirebaseAuth? get _firebaseAuth {
     try {
       if (Firebase.apps.isNotEmpty) {
@@ -35,8 +35,7 @@ class AuthRepositoryImpl implements IAuthRepository {
   /// The single privileged email that is always treated as admin role.
   static const String _adminEmail = 'novelsdestinyadmin@gmail.com';
 
-  bool _isAdminEmail(String email) =>
-      email.trim().toLowerCase() == _adminEmail;
+  bool _isAdminEmail(String email) => email.trim().toLowerCase() == _adminEmail;
 
   @override
   Stream<UserEntity?> authStateChanges() {
@@ -47,7 +46,10 @@ class AuthRepositoryImpl implements IAuthRepository {
   UserEntity? get currentUser => _dataSource.currentUser;
 
   @override
-  Future<UserEntity> signInWithEmailPassword(String email, String password) async {
+  Future<UserEntity> signInWithEmailPassword(
+    String email,
+    String password,
+  ) async {
     try {
       // 1. Attempt real Firebase Auth
       UserCredential? credential;
@@ -114,8 +116,11 @@ class AuthRepositoryImpl implements IAuthRepository {
   Future<UserEntity> signInWithGoogle() async {
     try {
       // 1. Initialize and trigger Google Sign-In flow with serverClientId on Android
-      final String? envClientId = dotenv.isInitialized ? dotenv.env['GOOGLE_SERVER_CLIENT_ID'] : null;
-      final String serverClientId = (envClientId != null && envClientId.isNotEmpty)
+      final String? envClientId = dotenv.isInitialized
+          ? dotenv.env['GOOGLE_SERVER_CLIENT_ID']
+          : null;
+      final String serverClientId =
+          (envClientId != null && envClientId.isNotEmpty)
           ? envClientId
           : AppConstants.defaultGoogleServerClientId;
 
@@ -124,7 +129,8 @@ class AuthRepositoryImpl implements IAuthRepository {
       if (!_googleSignInInitialized) {
         try {
           await googleSignIn.initialize(
-            serverClientId: (!kIsWeb && io.Platform.isAndroid && serverClientId.isNotEmpty)
+            serverClientId:
+                (!kIsWeb && io.Platform.isAndroid && serverClientId.isNotEmpty)
                 ? serverClientId
                 : null,
           );
@@ -156,10 +162,12 @@ class AuthRepositoryImpl implements IAuthRepository {
       }
 
       // 2. Get auth credentials from Google
-      final GoogleSignInAuthentication googleAuth = googleAccount.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          googleAccount.authentication;
       String? accessToken;
       try {
-        final authorization = await googleAccount.authorizationClient.authorizationForScopes(['email']);
+        final authorization = await googleAccount.authorizationClient
+            .authorizationForScopes(['email']);
         accessToken = authorization?.accessToken;
       } catch (e) {
         debugPrint('Google authorizationForScopes warning (non-fatal): $e');
@@ -173,26 +181,31 @@ class AuthRepositoryImpl implements IAuthRepository {
       // 3. Sign in to Firebase with Google credential
       UserCredential? firebaseCredential;
       try {
-        firebaseCredential = await _firebaseAuth?.signInWithCredential(credential);
+        firebaseCredential = await _firebaseAuth?.signInWithCredential(
+          credential,
+        );
       } catch (e) {
         debugPrint('Firebase Auth Google signIn failed: $e');
       }
 
       // 4. Build UserModel from Firebase user or Google account info
-      final String uid = firebaseCredential?.user?.uid ?? 'google_${googleAccount.id}';
-      final String displayName = firebaseCredential?.user?.displayName
-          ?? googleAccount.displayName
-          ?? googleAccount.email.split('@').first;
-      final String email = firebaseCredential?.user?.email ?? googleAccount.email;
-      final String? photoUrl = firebaseCredential?.user?.photoURL ?? googleAccount.photoUrl;
+      final String uid =
+          firebaseCredential?.user?.uid ?? 'google_${googleAccount.id}';
+      final String displayName =
+          firebaseCredential?.user?.displayName ??
+          googleAccount.displayName ??
+          googleAccount.email.split('@').first;
+      final String email =
+          firebaseCredential?.user?.email ?? googleAccount.email;
+      final String? photoUrl =
+          firebaseCredential?.user?.photoURL ?? googleAccount.photoUrl;
 
       // 5. Check if user already exists in Firestore
       UserModel? existingUser;
       try {
-        existingUser = await _firestore.getUser(uid).timeout(
-          const Duration(seconds: 5),
-          onTimeout: () => null,
-        );
+        existingUser = await _firestore
+            .getUser(uid)
+            .timeout(const Duration(seconds: 5), onTimeout: () => null);
       } catch (e) {
         debugPrint('Firestore getUser warning during Google sign-in: $e');
       }
@@ -216,12 +229,16 @@ class AuthRepositoryImpl implements IAuthRepository {
 
         // 6. Save to Firestore with a timeout so we never hang
         try {
-          await _firestore.saveUser(googleUser).timeout(
-            const Duration(seconds: 5),
-            onTimeout: () {
-              debugPrint('Firestore saveUser timed out during Google sign-in, continuing anyway.');
-            },
-          );
+          await _firestore
+              .saveUser(googleUser)
+              .timeout(
+                const Duration(seconds: 5),
+                onTimeout: () {
+                  debugPrint(
+                    'Firestore saveUser timed out during Google sign-in, continuing anyway.',
+                  );
+                },
+              );
         } catch (e) {
           debugPrint('Firestore saveUser warning during Google sign-in: $e');
         }
@@ -269,9 +286,13 @@ class AuthRepositoryImpl implements IAuthRepository {
         }
       } on FirebaseAuthException catch (e) {
         if (e.code == 'email-already-in-use') {
-          throw const ValidationFailure('An account with this email already exists.');
+          throw const ValidationFailure(
+            'An account with this email already exists.',
+          );
         } else if (e.code == 'weak-password') {
-          throw const ValidationFailure('Password is too weak. Please use at least 6 characters.');
+          throw const ValidationFailure(
+            'Password is too weak. Please use at least 6 characters.',
+          );
         }
         debugPrint('Firebase createUser warning: ${e.message}');
       } catch (e) {
@@ -313,7 +334,8 @@ class AuthRepositoryImpl implements IAuthRepository {
       var savedUser = await _sessionService.getSavedUserSession();
       if (savedUser != null) {
         // Promote admin email in case the cached session has a stale role
-        if (_isAdminEmail(savedUser.email) && savedUser.role != UserRole.admin) {
+        if (_isAdminEmail(savedUser.email) &&
+            savedUser.role != UserRole.admin) {
           savedUser = UserModel(
             id: savedUser.id,
             displayName: savedUser.displayName,
@@ -328,7 +350,9 @@ class AuthRepositoryImpl implements IAuthRepository {
             bio: savedUser.bio,
           );
           await _sessionService.saveUserSession(savedUser);
-          try { await _firestore.saveUser(savedUser); } catch (_) {}
+          try {
+            await _firestore.saveUser(savedUser);
+          } catch (_) {}
         }
         _dataSource.updateUser(savedUser);
         _dataSource.setCurrentUser(savedUser);
@@ -340,7 +364,9 @@ class AuthRepositoryImpl implements IAuthRepository {
       if (fbUser != null) {
         var userDoc = await _firestore.getUser(fbUser.uid);
         // Ensure admin email always gets admin role on session restore
-        if (userDoc != null && _isAdminEmail(userDoc.email) && userDoc.role != UserRole.admin) {
+        if (userDoc != null &&
+            _isAdminEmail(userDoc.email) &&
+            userDoc.role != UserRole.admin) {
           userDoc = UserModel(
             id: userDoc.id,
             displayName: userDoc.displayName,
@@ -358,10 +384,13 @@ class AuthRepositoryImpl implements IAuthRepository {
         }
         userDoc ??= UserModel(
           id: fbUser.uid,
-          displayName: fbUser.displayName ?? fbUser.email?.split('@').first ?? 'User',
+          displayName:
+              fbUser.displayName ?? fbUser.email?.split('@').first ?? 'User',
           email: fbUser.email ?? '',
           photoUrl: fbUser.photoURL,
-          role: _isAdminEmail(fbUser.email ?? '') ? UserRole.admin : UserRole.reader,
+          role: _isAdminEmail(fbUser.email ?? '')
+              ? UserRole.admin
+              : UserRole.reader,
           approvalStatus: ApprovalStatus.approved,
           isActive: true,
           createdAt: DateTime.now(),
@@ -408,7 +437,8 @@ class AuthRepositoryImpl implements IAuthRepository {
       throw const UnauthorizedFailure();
     }
 
-    final updated = current.copyWith(role: newRole, updatedAt: DateTime.now()) as UserModel;
+    final updated =
+        current.copyWith(role: newRole, updatedAt: DateTime.now()) as UserModel;
     _dataSource.updateUser(updated);
     await _sessionService.saveUserSession(updated);
     await _firestore.saveUser(updated);
@@ -416,16 +446,22 @@ class AuthRepositoryImpl implements IAuthRepository {
   }
 
   @override
-  Future<UserEntity> updateProfile({String? displayName, String? bio, String? photoUrl}) async {
+  Future<UserEntity> updateProfile({
+    String? displayName,
+    String? bio,
+    String? photoUrl,
+  }) async {
     final current = _dataSource.currentUser;
     if (current == null) throw const UnauthorizedFailure();
 
-    final updated = current.copyWith(
-      displayName: displayName ?? current.displayName,
-      bio: bio ?? current.bio,
-      photoUrl: photoUrl ?? current.photoUrl,
-      updatedAt: DateTime.now(),
-    ) as UserModel;
+    final updated =
+        current.copyWith(
+              displayName: displayName ?? current.displayName,
+              bio: bio ?? current.bio,
+              photoUrl: photoUrl ?? current.photoUrl,
+              updatedAt: DateTime.now(),
+            )
+            as UserModel;
 
     _dataSource.updateUser(updated);
     await _sessionService.saveUserSession(updated);

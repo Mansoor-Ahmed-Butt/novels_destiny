@@ -1,0 +1,8 @@
+﻿flutter : 13 issues found. (ran in 54.8s)
+At line:1 char:29
++ cd c:\apps\novels_destiny ; flutter analyze 2>&1 | Out-File -FilePath ...
++                             ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (13 issues found. (ran in 54.8s):S 
+   tring) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

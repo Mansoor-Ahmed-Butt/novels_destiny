@@ -1,0 +1,87 @@
+# Implementation Plan
+
+- [ ] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Image and Ad Block Rendering
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to concrete failing case(s): episodes with image blocks and ad blocks should have rendered widgets
+  - Test that `_buildContentBlocks()` method returns widgets list containing image and ad widgets (from Bug Condition in design)
+  - Create test episodes with image blocks and ad blocks, verify widgets are created
+  - Test URL resolution from storagePath fallback (isBugCondition: block.type is image/ad AND URL resolution fails)
+  - The test assertions should match the Expected Behavior Properties from design (images render with URL, ads render as AdWidget or placeholder)
+  - Run test on UNFIXED code in debug mode
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause:
+    - Image widget missing from rendered output despite block existing in data
+    - Ad widget showing as SizedBox.shrink() or loading spinner instead of actual content
+    - Mixed content episodes showing text but gaps where images/ads should be
+  - Mark task complete when test is written, run on unfixed code, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4_
+
+- [ ] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Text and PDF Block Rendering Unchanged
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (text and PDF blocks)
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Text blocks render with correct fonts and styling
+    - PDF blocks render with Syncfusion viewer
+    - Block order is preserved in output
+    - Reader settings don't affect text/PDF rendering
+  - Property-based testing generates many test cases for stronger guarantees
+  - Generate random episodes with combinations of text and PDF blocks (no image/ad blocks)
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Document observed patterns for text and PDF rendering
+  - Mark task complete when tests are written, run on unfixed code, and passing
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 3. Fix for Episode Images & Ads Not Displaying in Reader
+
+  - [ ] 3.1 Implement the fix
+    - Enhance URL resolution logic for image blocks to handle multiple URL formats
+    - Add fallback from block.url to regenerated URL from storagePath
+    - Implement proper conditional checking before widget creation
+    - Verify image widgets are added to the widgets list when URL is valid
+    - Verify ad widgets are added to the widgets list and rendered
+    - Add logging for debugging URL resolution and widget creation
+    - Test that AdService().shouldShowAdsFor() is correctly gating ad rendering
+    - _Bug_Condition: isBugCondition(block) where block.type IN [image, ad]_
+    - _Expected_Behavior: expectedBehavior(result) - widgets list contains properly rendered image and ad widgets_
+    - _Preservation: Text and PDF blocks render identically, uploads/serialization unchanged_
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 3.5_
+
+  - [ ] 3.2 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Image and Ad Block Rendering
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1 in debug mode
+    - Verify that episodes with image blocks now render image widgets
+    - Verify that episodes with ad blocks now render ad widgets
+    - Verify image URLs are correctly resolved and accessible
+    - Verify ad service is properly initialized and showing ads for allowed users
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Document observations of working image/ad rendering
+    - _Requirements: Expected Behavior Properties 2.1, 2.2, 2.3, 2.4_
+
+  - [ ] 3.3 Verify preservation tests still pass
+    - **Property 2: Preservation** - Text and PDF Block Rendering Unchanged
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - Verify text blocks still render with correct fonts and styling
+    - Verify PDF blocks still render with Syncfusion viewer
+    - Verify block order is preserved
+    - Verify reader settings continue to work correctly
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix (no regressions)
+    - _Requirements: Preservation Properties 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Run all unit tests, property-based tests, and integration tests
+  - Verify image rendering in release APK build (addresses related Issue 3)
+  - Test in multiple device configurations if possible
+  - Check for console warnings or errors related to image/ad loading
+  - Ensure no performance regressions from added logging/fallback logic
+  - Ask the user if questions arise, or if they need additional verification steps

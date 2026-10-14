@@ -1,0 +1,60 @@
+00:00 +0: loading C:/apps/novels_destiny/test/app_text_field_test.dart
+00:00 +0: C:/apps/novels_destiny/test/app_text_field_test.dart: AppTextField GetX ValueBuilder Tests Password field shows visibility_off icon initially and toggles on tap
+00:04 +1: C:/apps/novels_destiny/test/app_text_field_test.dart: AppTextField GetX ValueBuilder Tests Non-password field does not show password toggle icon
+00:04 +2: C:/apps/novels_destiny/test/app_text_field_test.dart: AppTextField GetX ValueBuilder Tests Non-password field respects obscureText parameter from parent
+00:07 +3: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests Initializes with empty credentials and sign-in mode
+00:07 +4: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests toggleSignUpMode clears form fields for sign-up and sign-in
+00:07 +5: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests toggleAdminMode updates isAdminMode without prefilling credentials
+00:07 +6: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests setSelectedRole updates selectedRole observable
+00:07 +7: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests toggleSignUpMode clears any active error state
+00:07 +8: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests typing in form fields automatically clears error state
+00:07 +9: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests signOut resets state observables and clears form fields
+00:07 +10: C:/apps/novels_destiny/test/auth_controller_test.dart: AuthController Form State Tests text controllers are disposed in onClose
+00:09 +11: C:/apps/novels_destiny/test/auth_page_test.dart: AuthPage GetX Reactive Widget Tests Toggles sign-in and sign-up forms reactively
+00:13 +12: C:/apps/novels_destiny/test/auth_page_test.dart: AuthPage GetX Reactive Widget Tests Toggles admin portal mode and updates UI header without prefilled credentials
+00:26 +13: C:/apps/novels_destiny/test/episode_reader_ad_placements_test.dart: NovelTextHelper detects Urdu text accurately
+00:26 +14: C:/apps/novels_destiny/test/episode_reader_ad_placements_test.dart: NovelTextHelper splits English and Urdu prose into clean reading lines
+00:26 +15: C:/apps/novels_destiny/test/episode_reader_ad_placements_test.dart: EpisodeReaderAdPlacements distributes 5 illustration images between text lines instead of clustering at the top
+00:26 +16: C:/apps/novels_destiny/test/episode_reader_ad_placements_test.dart: EpisodeReaderAdPlacements distributes ads and illustrations for Urdu novel chapters
+00:26 +17: C:/apps/novels_destiny/test/episode_reader_ad_placements_test.dart: EpisodeReaderAdPlacements never places banner ads at the top of an episode and distributes 4 banner ads across prose
+00:26 +18: C:/apps/novels_destiny/test/episode_reader_ad_placements_test.dart: EpisodeReaderAdPlacements second episode story aligns 4 ads between the prose and never clusters ads at the end
+00:32 +19 -1: loading C:/apps/novels_destiny/test/features/reader/episode_reader_image_ad_rendering_test.dart [E]
+  Failed to load "C:/apps/novels_destiny/test/features/reader/episode_reader_image_ad_rendering_test.dart":
+  Compilation failed for testPath=C:/apps/novels_destiny/test/features/reader/episode_reader_image_ad_rendering_test.dart: test/features/reader/episode_reader_image_ad_rendering_test.dart:31:3: Error: 'class' can't be used as an identifier because it's a keyword.
+  Try renaming this to be an identifier that isn't a keyword.
+    class MockEpisodeReaderController {
+    ^^^^^
+  test/features/reader/episode_reader_image_ad_rendering_test.dart:31:3: Error: Expected ';' after this.
+    class MockEpisodeReaderController {
+    ^^^^^
+  test/features/reader/episode_reader_image_ad_rendering_test.dart:31:3: Error: Undefined name 'class'.
+    class MockEpisodeReaderController {
+    ^^^^^
+  test/features/reader/episode_reader_image_ad_rendering_test.dart:31:9: Error: Expected ';' after this.
+    class MockEpisodeReaderController {
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  test/features/reader/episode_reader_image_ad_rendering_test.dart:31:9: Error: Undefined name 'MockEpisodeReaderController'.
+    class MockEpisodeReaderController {
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  test/features/reader/episode_reader_image_ad_rendering_test.dart:34:24: Error: Undefined name 'ReaderFontFamily'.
+      final fontFamily = ReaderFontFamily.sans;
+                         ^^^^^^^^^^^^^^^^
+  test/features/reader/episode_reader_image_ad_rendering_test.dart:38:10: Error: 'ReaderColorTheme' isn't a type.
+      late ReaderColorTheme theme;
+           ^^^^^^^^^^^^^^^^
+  test/features/reader/episode_reader_image_ad_rendering_test.dart:41:15: Error: Undefined name 'ReaderColorTheme'.
+        theme = ReaderColorTheme.cream;
+                ^^^^^^^^^^^^^^^^
+  .
+00:33 +19 -1: C:/apps/novels_destiny/test/episode_reader_controller_test.dart: EpisodeReaderController Initializes reader customization defaults
+00:33 +20 -1: C:/apps/novels_destiny/test/episode_reader_controller_test.dart: EpisodeReaderController Disposes scroll controller on onClose
+00:45 +21 -1: C:/apps/novels_destiny/test/home_carousel_controller_test.dart: HomeCarouselController Tests Initializes with currentIndex 0
+00:45 +22 -1: C:/apps/novels_destiny/test/home_carousel_controller_test.dart: HomeCarouselController Tests onPageChanged updates currentIndex observable
+00:56 +23 -1: C:/apps/novels_destiny/test/widget_test.dart: Novel Platform Domain & Data Tests Loads featured and trending novels from repository
+00:57 +24 -1: C:/apps/novels_destiny/test/widget_test.dart: Novel Platform Domain & Data Tests Searches novels by query and genre accurately
+00:57 +25 -1: C:/apps/novels_destiny/test/widget_test.dart: Novel Platform Domain & Data Tests Reader can like and bookmark novels
+01:10 +26 -1: C:/apps/novels_destiny/test/writer_novel_card_test.dart: WriterNovelCard renders cleanly without overflow on small screens
+01:12 +27 -1: Some tests failed.
+
+Failing tests:
+  C:/apps/novels_destiny/test/features/reader/episode_reader_image_ad_rendering_test.dart: loading C:/apps/novels_destiny/test/features/reader/episode_reader_image_ad_rendering_test.dart

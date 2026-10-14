@@ -8,6 +8,7 @@ import '../../../domain/usecases/novel_usecases.dart';
 import '../../../domain/usecases/episode_usecases.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/episode_reader_ad_placements.dart';
+import '../../../core/utils/content_block_url_resolver.dart';
 import '../states/episode_reader_state.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../core/services/ad_service.dart';
@@ -19,13 +20,7 @@ class EpisodeReaderController extends GetxController {
   final EpisodeUseCases _episodeUseCases;
   final ILoggerService _logger;
 
-  EpisodeReaderController(
-    this.novelId,
-    this.initialEpisodeId,
-    this._novelUseCases,
-    this._episodeUseCases,
-    this._logger,
-  );
+  EpisodeReaderController(this.novelId, this.initialEpisodeId, this._novelUseCases, this._episodeUseCases, this._logger);
 
   final Rx<EpisodeReaderState> state = Rx<EpisodeReaderState>(const EpisodeReaderLoading());
   final ScrollController scrollController = ScrollController();
@@ -68,20 +63,16 @@ class EpisodeReaderController extends GetxController {
         return;
       }
 
-      final allEpisodes =
-          await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: true);
+      final allEpisodes = await _episodeUseCases.getEpisodesForNovel(novelId, publishedOnly: true);
       final currentEpIdx = allEpisodes.indexWhere((e) => e.id == episodeId);
       if (currentEpIdx < 0) {
         state.value = const EpisodeReaderFailure('Episode not found');
         return;
       }
 
-      final currentEp =
-          await _episodeUseCases.getEpisodeById(novelId, episodeId) ??
-              allEpisodes[currentEpIdx];
+      final currentEp = await _episodeUseCases.getEpisodeById(novelId, episodeId) ?? allEpisodes[currentEpIdx];
       final prevEp = currentEpIdx > 0 ? allEpisodes[currentEpIdx - 1] : null;
-      final nextEp =
-          currentEpIdx < allEpisodes.length - 1 ? allEpisodes[currentEpIdx + 1] : null;
+      final nextEp = currentEpIdx < allEpisodes.length - 1 ? allEpisodes[currentEpIdx + 1] : null;
 
       _episodeUseCases.incrementEpisodeView(novelId, episodeId);
 
@@ -97,22 +88,16 @@ class EpisodeReaderController extends GetxController {
 
       // Pre-compute interleaved reading blocks once
       final showAds = AdService().shouldShowAdsFor(role: role);
-      final blocks = EpisodeReaderAdPlacements.forReading(
-        currentEp.effectiveBlocks,
-        episodeId: episodeId,
-        injectAds: showAds,
-      );
-      readingBlocks.assignAll(blocks);
+      final blocks = EpisodeReaderAdPlacements.forReading(currentEp.effectiveBlocks, episodeId: episodeId, injectAds: showAds);
+
+      // Hydrate image/PDF URLs: prefer stored URL, fall back to public URL,
+      // then signed URL so content renders for private buckets too.
+      final hydratedBlocks = await ContentBlockUrlResolver.hydrateBlocksAsync(blocks);
+
+      readingBlocks.assignAll(hydratedBlocks);
       progressPercent.value = savedProgress;
 
-      state.value = EpisodeReaderReady(
-        novel: novel,
-        currentEpisode: currentEp,
-        allEpisodes: allEpisodes,
-        previousEpisode: prevEp,
-        nextEpisode: nextEp,
-        progressPercent: savedProgress,
-      );
+      state.value = EpisodeReaderReady(novel: novel, currentEpisode: currentEp, allEpisodes: allEpisodes, previousEpisode: prevEp, nextEpisode: nextEp, progressPercent: savedProgress);
 
       if (scrollController.hasClients) {
         scrollController.jumpTo(0);
@@ -142,20 +127,8 @@ class EpisodeReaderController extends GetxController {
       final user = auth.currentUser.value;
       final s = state.value;
       if (user != null && s is EpisodeReaderReady) {
-        await _novelUseCases.saveReadingProgress(
-          user.id,
-          ReadingProgressEntity(
-            novelId: novelId,
-            episodeId: s.currentEpisode.id,
-            episodeNumber: s.currentEpisode.episodeNumber,
-            scrollOffset: offset,
-            progressPercent: progress,
-            updatedAt: DateTime.now(),
-          ),
-        );
-        _logger.debug(
-          'Progress auto-saved for novel $novelId, ep ${s.currentEpisode.episodeNumber}: ${(progress * 100).toInt()}%',
-        );
+        await _novelUseCases.saveReadingProgress(user.id, ReadingProgressEntity(novelId: novelId, episodeId: s.currentEpisode.id, episodeNumber: s.currentEpisode.episodeNumber, scrollOffset: offset, progressPercent: progress, updatedAt: DateTime.now()));
+        _logger.debug('Progress auto-saved for novel $novelId, ep ${s.currentEpisode.episodeNumber}: ${(progress * 100).toInt()}%');
       }
     });
   }

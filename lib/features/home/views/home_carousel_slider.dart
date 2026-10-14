@@ -460,7 +460,7 @@ class _EmptyCarouselPlaceholder extends StatelessWidget {
       height: 300,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppRadii.xl),
-        color: AppColors.surfaceMuted,
+        color: AppColors.background,
         border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(

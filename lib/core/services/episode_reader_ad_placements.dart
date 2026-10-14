@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../../domain/entities/content_block_entity.dart';
+import '../utils/content_block_url_resolver.dart';
 import '../utils/novel_text_helper.dart';
 
 /// Injects illustration images and inline banner ad slots between episode text
@@ -42,9 +43,11 @@ class EpisodeReaderAdPlacements {
           }
           break;
         case ContentBlockType.image:
-          final url = block.url ?? '';
-          if (url.isNotEmpty) {
-            imageBlocks.add(block);
+          if (ContentBlockUrlResolver.hasNetworkImage(block) ||
+              (block.storagePath?.trim().isNotEmpty ?? false)) {
+            imageBlocks.add(
+              ContentBlockUrlResolver.withResolvedUrls(block),
+            );
           }
           break;
         case ContentBlockType.pdf:
@@ -100,21 +103,26 @@ class EpisodeReaderAdPlacements {
     }
 
     // 4. Compute banner ad placement positions (strictly between story text)
-    // Banner ads distributed between the text.
     final adSlots = <int>{};
-    if (injectAds && totalLines >= 1) {
-      final assignedAdSlots = _calculateAdPositions(
-        totalLines: totalLines,
-        adCount: targetBannerAds,
-        occupiedImageSlots: imageSlots.keys.toSet(),
-      );
-      adSlots.addAll(assignedAdSlots);
+    final useManualAds = manualAdBlocks.isNotEmpty;
+    if (injectAds && totalLines >= 4) {
+      final adCount = useManualAds
+          ? manualAdBlocks.length.clamp(0, targetBannerAds)
+          : targetBannerAds;
+      if (adCount > 0) {
+        final assignedAdSlots = _calculateAdPositions(
+          totalLines: totalLines,
+          adCount: adCount,
+          occupiedImageSlots: imageSlots.keys.toSet(),
+        );
+        adSlots.addAll(assignedAdSlots);
+      }
     }
 
     // 5. Interweave text lines, illustration images, and banner ads
     final result = <ContentBlockEntity>[];
     final remainingImages = List<ContentBlockEntity>.from(imageBlocks);
-    var adSlotCounter = 1;
+    var adSlotCounter = 0;
 
     for (var i = 0; i < totalLines; i++) {
       // Add the story text line first
@@ -129,22 +137,22 @@ class EpisodeReaderAdPlacements {
 
       // Check for banner ad after this line
       if (adSlots.contains(i) && !imageSlots.containsKey(i)) {
-        result.add(
-          ContentBlockEntity(
-            id: 'auto_ad_${episodeId}_slot_$adSlotCounter',
-            episodeId: episodeId,
-            type: ContentBlockType.ad,
-            order: 0,
-            placement: 'inline_auto',
-          ),
-        );
-        adSlotCounter++;
+        if (useManualAds && adSlotCounter < manualAdBlocks.length) {
+          result.add(manualAdBlocks[adSlotCounter]);
+          adSlotCounter++;
+        } else if (!useManualAds) {
+          adSlotCounter++;
+          result.add(
+            ContentBlockEntity(
+              id: 'auto_ad_${episodeId}_slot_$adSlotCounter',
+              episodeId: episodeId,
+              type: ContentBlockType.ad,
+              order: 0,
+              placement: 'inline_auto',
+            ),
+          );
+        }
       }
-    }
-
-    // Append any manual author ad placements
-    for (final ad in manualAdBlocks) {
-      result.add(ad);
     }
 
     // Append any leftover illustration images that couldn't fit in the text
@@ -198,17 +206,8 @@ class EpisodeReaderAdPlacements {
     final positions = <int>[];
     if (adCount <= 0 || totalLines <= 0) return positions;
 
-    // For single-line stories, place ad below the line
-    if (totalLines == 1) {
-      return [0];
-    }
-
-    // For short stories with 2 or 3 lines
-    if (totalLines <= 3) {
-      final slot = occupiedImageSlots.contains(0) ? 1 : 0;
-      if (slot < totalLines) {
-        positions.add(slot);
-      }
+    // Short chapters: no inline banner ads (need enough prose for spacing).
+    if (totalLines < 4) {
       return positions;
     }
 

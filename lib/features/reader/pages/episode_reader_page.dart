@@ -16,7 +16,7 @@ import '../../auth/controllers/auth_controller.dart';
 import '../widgets/reader_inline_banner_ad.dart';
 import '../../../core/widgets/app_adaptive_image.dart';
 import '../../../core/utils/novel_text_helper.dart';
-import '../../../core/services/supabase_storage_service.dart';
+import '../../../core/utils/content_block_url_resolver.dart';
 
 class EpisodeReaderPage extends StatelessWidget {
   const EpisodeReaderPage({super.key});
@@ -422,15 +422,10 @@ class EpisodeReaderPage extends StatelessWidget {
           break;
 
         case ContentBlockType.image:
-          // Resolve the best available image URL:
-          // 1. Prefer block.url if it's already an https URL (Supabase public URL)
-          // 2. Fallback: regenerate public URL from storagePath (handles cases where
-          //    upload succeeded but url was saved as a local device path)
-          String imageUrl = block.url ?? '';
-          if (!imageUrl.startsWith('http') && (block.storagePath?.isNotEmpty ?? false)) {
-            final regenerated = SupabaseStorageService().getPublicUrl(block.storagePath!);
-            if (regenerated.isNotEmpty) imageUrl = regenerated;
-          }
+          final imageUrl = ContentBlockUrlResolver.resolvePublicUrl(
+            url: block.url,
+            storagePath: block.storagePath,
+          );
 
           if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
             // Only show caption if it's NOT a raw filename (has no extension like .jpg/.png)
@@ -475,7 +470,10 @@ class EpisodeReaderPage extends StatelessWidget {
           break;
 
         case ContentBlockType.pdf:
-          final pdfUrl = block.url ?? '';
+          final pdfUrl = ContentBlockUrlResolver.resolvePublicUrl(
+            url: block.url,
+            storagePath: block.storagePath,
+          );
           if (pdfUrl.isNotEmpty) {
             widgets.add(
               Container(

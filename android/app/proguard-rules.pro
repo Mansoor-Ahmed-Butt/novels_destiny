@@ -29,17 +29,36 @@
 -keep @androidx.room.Entity class *
 -dontwarn androidx.room.paging.**
 
-# Google Mobile Ads
+# Google Mobile Ads (extensive — prevents ad rendering failures in release)
 -keep class com.google.android.gms.ads.** { *; }
+-keep class com.google.android.gms.ads.initialization.** { *; }
+-keep class com.google.android.gms.ads.rewarded.** { *; }
+-keep class com.google.android.gms.ads.interstitial.** { *; }
+-keep class com.google.android.gms.ads.nativead.** { *; }
+-keep class com.google.android.gms.ads.admanager.** { *; }
+-keep class com.google.ads.** { *; }
+-dontwarn com.google.android.gms.ads.**
+-dontwarn com.google.ads.**
 
-# Flutter Local Notifications
--keep class com.dexterous.** { *; }
-
-# Supabase / OkHttp
+# Supabase / OkHttp / Retrofit (network layer for image & data loading)
 -dontwarn okhttp3.**
 -dontwarn okio.**
 -keep class okhttp3.** { *; }
 -keep interface okhttp3.** { *; }
+-keep class okio.** { *; }
+-keep interface okio.** { *; }
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepattributes Signature
+-keepattributes Exceptions
+-keepattributes *Annotation*
+-keep class com.supabase.** { *; }
+-keep class io.supabase.** { *; }
+-dontwarn com.supabase.**
+-dontwarn io.supabase.**
+
+# Flutter Local Notifications
+-keep class com.dexterous.** { *; }
 
 # General
 -keepattributes *Annotation*
@@ -50,6 +69,14 @@
 -keepclassmembers class * extends android.content.Context {
    public void *serialize*(...);
 }
+
+# JSON / Moshi serialization used by Supabase
+-keepclassmembers class * {
+    @com.squareup.moshi.* <fields>;
+}
+-keep class kotlin.Metadata { *; }
+-dontwarn kotlin.reflect.jvm.internal.**
+-keep class kotlin.reflect.** { *; }
 
 
 

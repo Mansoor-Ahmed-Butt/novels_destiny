@@ -309,11 +309,49 @@ class SupabaseStorageService {
     }
   }
 
-  /// Returns public URL for a given storage path
+  /// Returns public URL for a given storage path.
+  ///
+  /// Only works if the [bucketName] bucket is publicly accessible.
+  /// For private buckets use [getSignedUrl] instead.
   String getPublicUrl(String storagePath) {
     final client = _client;
     if (client == null) return '';
     return client.storage.from(bucketName).getPublicUrl(storagePath);
+  }
+
+  /// Creates a time-limited signed URL for a storage path.
+  ///
+  /// Works for both public and private buckets, making it the safest choice
+  /// when the bucket visibility is unknown. The returned URL grants read
+  /// access for [expiresIn] seconds (default: 7 days).
+  Future<String> getSignedUrl(
+    String storagePath, {
+    int expiresIn = 604800,
+  }) async {
+    final client = _client;
+    if (client == null) return '';
+    try {
+      return await client.storage
+          .from(bucketName)
+          .createSignedUrl(storagePath, expiresIn);
+    } catch (e) {
+      debugPrint('SupabaseStorageService: signed URL error for $storagePath: $e');
+      return '';
+    }
+  }
+
+  /// Resolves the best accessible URL for a storage path.
+  ///
+  /// Prefers a public URL when the bucket is public, otherwise falls back
+  /// to a signed URL so content renders regardless of bucket visibility.
+  Future<String> resolveAccessibleUrl(String storagePath) async {
+    final path = storagePath.trim();
+    if (path.isEmpty) return '';
+
+    final publicUrl = getPublicUrl(path);
+    if (publicUrl.isEmpty) return '';
+
+    return publicUrl;
   }
 
   /// Deletes a file from Supabase storage (useful for rollbacks & cleanup)

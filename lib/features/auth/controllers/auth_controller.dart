@@ -26,10 +26,10 @@ class AuthController extends GetxController {
   // Form state observables for AuthPage
   /// Tracks whether the auth form is in sign-up mode (true) or sign-in mode (false)
   final RxBool isSignUp = false.obs;
-  
+
   /// Tracks whether admin portal mode is enabled on the sign-in form
   final RxBool isAdminMode = false.obs;
-  
+
   /// Tracks the selected role for sign-up form
   final Rx<UserRole> selectedRole = Rx<UserRole>(UserRole.reader);
 
@@ -121,10 +121,14 @@ class AuthController extends GetxController {
       if (restored != null) {
         currentUser.value = restored;
         state.value = Authenticated(restored);
-        _logger.info('User session restored: ${restored.email} (${restored.role.name})');
-        if (restored.role == UserRole.admin && Get.isRegistered<AdminDashboardController>()) {
+        _logger.info(
+          'User session restored: ${restored.email} (${restored.role.name})',
+        );
+        if (restored.role == UserRole.admin &&
+            Get.isRegistered<AdminDashboardController>()) {
           Get.find<AdminDashboardController>().loadDashboard();
-        } else if (restored.role == UserRole.writer && Get.isRegistered<WriterDashboardController>()) {
+        } else if (restored.role == UserRole.writer &&
+            Get.isRegistered<WriterDashboardController>()) {
           Get.find<WriterDashboardController>().loadDashboard();
         }
         return restored;
@@ -232,9 +236,11 @@ class AuthController extends GetxController {
       if (Get.isRegistered<MainShellController>()) {
         Get.find<MainShellController>().setInitialTabForRole(user.role);
       }
-      if (user.role == UserRole.admin && Get.isRegistered<AdminDashboardController>()) {
+      if (user.role == UserRole.admin &&
+          Get.isRegistered<AdminDashboardController>()) {
         Get.find<AdminDashboardController>().loadDashboard();
-      } else if (user.role == UserRole.writer && Get.isRegistered<WriterDashboardController>()) {
+      } else if (user.role == UserRole.writer &&
+          Get.isRegistered<WriterDashboardController>()) {
         Get.find<WriterDashboardController>().loadDashboard();
       }
       Get.offAllNamed(AppRoutes.shell);
@@ -348,7 +354,7 @@ class AuthController extends GetxController {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
-    
+
     _authSubscription?.cancel();
     super.onClose();
   }
