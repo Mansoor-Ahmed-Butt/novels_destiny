@@ -8,6 +8,7 @@ import '../../../core/widgets/app_text_field.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_card.dart';
 import '../../../core/widgets/app_states.dart';
+import '../../../core/widgets/voice_dictation_button.dart';
 import '../../../core/responsive/breakpoints.dart';
 import '../controllers/novel_editor_controller.dart';
 
@@ -114,9 +115,19 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                     ),
                     const SizedBox(height: AppSpacing.l),
 
-                    // Synopsis / Blurb
+                    // The Hook (Synopsis / Blurb)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('The Hook', style: AppTextStyles.labelLarge),
+                        VoiceDictationButton(
+                          controller: _ctrl.descriptionController,
+                          label: 'Speak',
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
                     AppTextField(
-                      label: 'Synopsis / Blurb',
                       hint:
                           'A captivating summary that hooks readers on the explore page...',
                       controller: _ctrl.descriptionController,
@@ -570,8 +581,21 @@ class _NovelEditorPageState extends State<NovelEditorPage> {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Full Novel Story',
+                                style: AppTextStyles.labelLarge,
+                              ),
+                              VoiceDictationButton(
+                                controller: _ctrl.manuscriptController,
+                                label: 'Speak',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
                           AppTextField(
-                            label: 'Full Novel Manuscript',
                             hint:
                                 'Type or paste your complete story here...\n\nReaders will enjoy seamless reading with customizable fonts, font sizes, line height, and dark/light themes.',
                             controller: _ctrl.manuscriptController,

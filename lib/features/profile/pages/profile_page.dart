@@ -26,8 +26,10 @@ class ProfilePage extends GetView<ProfileController> {
         final currentLocale = controller.currentLocale.value;
         final isUrdu = currentLocale.languageCode == 'ur';
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.l),
+        return Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.l),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(
@@ -155,11 +157,20 @@ class ProfilePage extends GetView<ProfileController> {
                   // Sign Out Button
                   Center(
                     child: TextButton.icon(
-                      onPressed: controller.signOut,
-                      icon: const Icon(
-                        Icons.logout_rounded,
-                        color: AppColors.error,
-                      ),
+                      onPressed: controller.isSigningOut.value ? null : controller.signOut,
+                      icon: controller.isSigningOut.value
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.error,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.logout_rounded,
+                              color: AppColors.error,
+                            ),
                       label: Text(
                         'sign_out_of_account'.tr,
                         style: AppTextStyles.labelLarge.copyWith(
@@ -172,7 +183,42 @@ class ProfilePage extends GetView<ProfileController> {
               ),
             ),
           ),
-        );
+        ),
+        if (controller.isSigningOut.value)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black54,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: AppColors.primary),
+                      const SizedBox(height: AppSpacing.m),
+                      Text(
+                        'signing_out'.tr.isNotEmpty ? 'signing_out'.tr : 'Signing out of account...',
+                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
       }),
     );
   }

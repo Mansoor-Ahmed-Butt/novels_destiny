@@ -41,6 +41,7 @@ class HomeController extends GetxController {
   ];
 
   Timer? _searchDebounce;
+  bool _isFirstLoad = true;
 
   @override
   void onInit() {
@@ -48,20 +49,34 @@ class HomeController extends GetxController {
     loadHomeData();
   }
 
-  Future<void> loadHomeData() async {
+  void purgeNovel(String novelId) {
+    featuredNovels.removeWhere((n) => n.id == novelId);
+    trendingNovels.removeWhere((n) => n.id == novelId);
+    genreNovels.removeWhere((n) => n.id == novelId);
+    searchResults.removeWhere((n) => n.id == novelId);
+    historyNovelMap.remove(novelId);
+    readingHistory.removeWhere((p) => p.novelId == novelId);
+  }
+
+  Future<void> loadHomeData({bool isSilent = false}) async {
     try {
-      isLoading.value = true;
+      if (!isSilent) {
+        isLoading.value = true;
+      }
       errorMessage.value = '';
 
       // Short delay on cold start — Firebase auth token may not be ready
       // before the first Firestore call, causing empty results silently.
-      await Future.delayed(const Duration(milliseconds: 400));
+      if (_isFirstLoad) {
+        _isFirstLoad = false;
+        await Future.delayed(const Duration(milliseconds: 400));
+      }
 
       List<NovelEntity> featured = await _novelUseCases.getFeaturedNovels();
       List<NovelEntity> trending = await _novelUseCases.getTrendingNovels();
 
       // If empty, Firestore might still be initializing — retry once
-      if (featured.isEmpty) {
+      if (featured.isEmpty && _isFirstLoad) {
         await Future.delayed(const Duration(milliseconds: 600));
         featured = await _novelUseCases.getFeaturedNovels();
         trending = await _novelUseCases.getTrendingNovels();
@@ -173,8 +188,9 @@ class HomeController extends GetxController {
     }
   }
 
-  void openNovel(NovelEntity novel) {
-    Get.toNamed(AppRoutes.novelDetails(novel.id));
+  Future<void> openNovel(NovelEntity novel) async {
+    await Get.toNamed(AppRoutes.novelDetails(novel.id));
+    loadHomeData(isSilent: true);
   }
 
   void resumeReading(ReadingProgressEntity progress) {

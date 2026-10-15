@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../domain/entities/episode_entity.dart';
 import '../../../domain/entities/content_block_entity.dart';
@@ -10,6 +11,12 @@ import '../states/novel_details_state.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../app/routes/app_routes.dart';
 import '../../../core/services/ad_service.dart';
+
+import '../../main_shell/main_shell_page.dart';
+import '../../home/controllers/home_controller.dart';
+import '../../writer_dashboard/controllers/writer_dashboard_controller.dart';
+import '../../admin_dashboard/controllers/admin_dashboard_controller.dart';
+import '../../../domain/entities/user_entity.dart';
 
 class NovelDetailsController extends GetxController {
   final String novelId;
@@ -29,6 +36,7 @@ class NovelDetailsController extends GetxController {
   final Rx<NovelDetailsState> state = Rx<NovelDetailsState>(const NovelDetailsLoading());
   final RxDouble userRating = 0.0.obs;
   final RxBool isSubmittingRating = false.obs;
+  final RxBool isDeletingNovel = false.obs;
 
   @override
   void onInit() {
@@ -299,14 +307,45 @@ class NovelDetailsController extends GetxController {
     if (current is! NovelDetailsReady) return;
 
     try {
+      isDeletingNovel.value = true;
       await _novelUseCases.deleteNovel(novelId);
-      Get.snackbar(
-        'Novel Deleted',
-        '${current.novel.title} and any attached PDF files were permanently removed from Supabase and database.',
-        snackPosition: SnackPosition.TOP,
-      );
+
+      // Clean up cached lists across active controllers immediately
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().purgeNovel(novelId);
+        Get.find<HomeController>().loadHomeData();
+      }
+      if (Get.isRegistered<WriterDashboardController>()) {
+        Get.find<WriterDashboardController>().loadDashboard(force: true);
+      }
+      if (Get.isRegistered<AdminDashboardController>()) {
+        Get.find<AdminDashboardController>().loadDashboard();
+      }
+
+      isDeletingNovel.value = false;
+
+      // Navigate back to Writer Dashboard if available
+      if (Get.isRegistered<MainShellController>()) {
+        final shell = Get.find<MainShellController>();
+        final auth = Get.find<AuthController>();
+        final role = auth.currentUser.value?.role;
+        if (role == UserRole.writer || role == UserRole.admin) {
+          shell.selectedIndex.value = 2; // Writer Studio tab
+        }
+      }
+
+      // Pop the novel details page
       Get.back();
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar(
+          'Novel Deleted',
+          '${current.novel.title} and any attached PDF files were permanently removed.',
+          snackPosition: SnackPosition.TOP,
+        );
+      });
     } catch (e) {
+      isDeletingNovel.value = false;
       Get.snackbar('Error', 'Failed to delete novel: $e');
     }
   }

@@ -11,9 +11,9 @@ import '../../../domain/usecases/episode_usecases.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/supabase_storage_service.dart';
 import '../../auth/controllers/auth_controller.dart';
-import '../../writer_dashboard/controllers/writer_dashboard_controller.dart';
 import '../../admin_dashboard/controllers/admin_dashboard_controller.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/errors/failures.dart';
 
 class NovelEditorController extends GetxController {
   final String? existingNovelId;
@@ -191,15 +191,20 @@ class NovelEditorController extends GetxController {
       final publicUrl = await _storageService.uploadNovelCover(novelId: _activeNovelId, filePath: picked.path);
       if (_isDisposed) return;
 
+      if (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://')) {
+        throw const StorageFailure('Cover upload completed without a valid cloud URL. Please verify your Supabase Storage settings.');
+      }
+
       coverUrlController.text = publicUrl;
       coverStoragePath = 'novels/$_activeNovelId/cover.${picked.path.split('.').last}';
       isUploadingCover.value = false;
       hasUnsavedChanges.value = true;
-      Get.snackbar('Cover Uploaded', 'Artwork successfully uploaded to Supabase Storage.');
+      Get.snackbar('Cover Uploaded', 'Artwork successfully uploaded to Supabase Storage.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       if (_isDisposed) return;
       isUploadingCover.value = false;
-      Get.snackbar('Upload Failed', e.toString());
+      final msg = e is AppFailure ? e.message : e.toString();
+      Get.snackbar('Upload Failed', msg, snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 6));
     }
   }
 
@@ -221,7 +226,11 @@ class NovelEditorController extends GetxController {
       if (_isDisposed) return;
 
       final url = result['url'] ?? '';
-      if (url.isNotEmpty && galleryImages.length < 5) {
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        throw const StorageFailure('Gallery upload completed without a valid cloud URL. Please verify your Supabase Storage settings.');
+      }
+
+      if (galleryImages.length < 5) {
         galleryImages.add(url);
         hasUnsavedChanges.value = true;
         Get.snackbar('Image Added', 'Illustration added to novel gallery (${galleryImages.length}/5).', snackPosition: SnackPosition.BOTTOM);
@@ -230,7 +239,8 @@ class NovelEditorController extends GetxController {
     } catch (e) {
       if (_isDisposed) return;
       isUploadingGalleryImage.value = false;
-      Get.snackbar('Gallery Upload Failed', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      final msg = e is AppFailure ? e.message : e.toString();
+      Get.snackbar('Gallery Upload Failed', msg, snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 6));
     }
   }
 
@@ -255,7 +265,12 @@ class NovelEditorController extends GetxController {
       final uploadRes = await _storageService.uploadNovelPdf(novelId: _activeNovelId, filePath: file.path!, originalFileName: file.name);
       if (_isDisposed) return;
 
-      pdfUrl.value = uploadRes['url'];
+      final url = uploadRes['url'];
+      if (url == null || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('PDF upload completed without a valid cloud URL. Please verify your Supabase Storage settings.');
+      }
+
+      pdfUrl.value = url;
       pdfStoragePath.value = uploadRes['storagePath'];
       pdfFileName.value = uploadRes['fileName'] ?? file.name;
       isUploadingPdf.value = false;
@@ -265,7 +280,8 @@ class NovelEditorController extends GetxController {
     } catch (e) {
       if (_isDisposed) return;
       isUploadingPdf.value = false;
-      Get.snackbar('PDF Upload Error', e.toString(), snackPosition: SnackPosition.BOTTOM);
+      final msg = e is AppFailure ? e.message : e.toString();
+      Get.snackbar('PDF Upload Error', msg, snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 6));
     }
   }
 
@@ -315,6 +331,17 @@ class NovelEditorController extends GetxController {
       if (effectiveCoverUrl.isEmpty && galleryImages.isNotEmpty) {
         effectiveCoverUrl = galleryImages.first;
       }
+
+      if (publishImmediately && effectiveCoverUrl.isNotEmpty && !effectiveCoverUrl.startsWith('http://') && !effectiveCoverUrl.startsWith('https://')) {
+        isSaving.value = false;
+        Get.snackbar(
+          'Cannot Publish',
+          'Cover artwork is a local file and was not uploaded to cloud storage. Please re-upload your cover before publishing.',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 5),
+        );
+        return;
+      }
       final novel = NovelEntity(
         id: _activeNovelId,
         writerId: user.id,
@@ -355,12 +382,7 @@ class NovelEditorController extends GetxController {
       }
       if (_isDisposed) return;
 
-      // Refresh writer dashboard if active
-      if (Get.isRegistered<WriterDashboardController>()) {
-        Get.find<WriterDashboardController>().loadDashboard();
-      }
-
-      // Refresh admin dashboard if active
+      // Refresh admin dashboard if active (writer dashboard refreshes upon returning from navigation)
       if (Get.isRegistered<AdminDashboardController>()) {
         Get.find<AdminDashboardController>().loadDashboard();
       }
@@ -385,7 +407,7 @@ class NovelEditorController extends GetxController {
       _isCleaningUp = true;
 
       final tag = existingNovelId ?? '__new_novel__';
-      Get.back();
+      Get.back(result: true);
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (Get.isRegistered<NovelEditorController>(tag: tag)) {

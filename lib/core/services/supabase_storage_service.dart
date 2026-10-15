@@ -34,6 +34,23 @@ class SupabaseStorageService {
     }
   }
 
+  StorageFailure _mapStorageError(dynamic error, String operation) {
+    final str = error.toString();
+    if (str.contains('Bucket not found') || str.contains('NoSuchBucket') || str.contains('404')) {
+      return const StorageFailure(
+        'Supabase Storage bucket "novel-files" was not found. Please create the public bucket "novel-files" in your Supabase dashboard.',
+      );
+    }
+    if (str.contains('row-level security') || str.contains('Unauthorized') || str.contains('403')) {
+      return const StorageFailure(
+        'Supabase Storage permission denied. Please add Storage RLS policies in your Supabase dashboard for bucket "novel-files".',
+      );
+    }
+    return StorageFailure(
+      'Failed to $operation: ${error is StorageException ? error.message : str}',
+    );
+  }
+
   /// Uploads a novel cover image.
   /// Storage path: novels/{novelId}/cover.jpg
   Future<String> uploadNovelCover({
@@ -43,8 +60,7 @@ class SupabaseStorageService {
   }) async {
     final client = _client;
     if (client == null) {
-      debugPrint('SupabaseStorageService: Supabase not initialized, using local cover path.');
-      return filePath;
+      throw const StorageFailure('Cloud storage is uninitialized. Please verify Supabase setup.');
     }
 
     final fileName = filePath.split(Platform.isWindows ? '\\' : '/').last;
@@ -75,10 +91,14 @@ class SupabaseStorageService {
           );
 
       final url = getPublicUrl(deterministicPath);
-      return url.isNotEmpty ? url : filePath;
+      if (url.isEmpty || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('Upload succeeded but generated an invalid public URL.');
+      }
+      return url;
     } catch (e) {
-      debugPrint('Supabase upload cover warning: $e, falling back to local file path.');
-      return filePath;
+      debugPrint('Supabase upload cover error: $e');
+      if (e is AppFailure) rethrow;
+      throw _mapStorageError(e, 'upload novel cover');
     }
   }
 
@@ -92,8 +112,7 @@ class SupabaseStorageService {
   }) async {
     final client = _client;
     if (client == null) {
-      debugPrint('SupabaseStorageService: Supabase not initialized, skipping image upload.');
-      return {};
+      throw const StorageFailure('Cloud storage is uninitialized. Please verify Supabase setup.');
     }
 
     final fileName = filePath.split(Platform.isWindows ? '\\' : '/').last;
@@ -125,16 +144,17 @@ class SupabaseStorageService {
           );
 
       final url = getPublicUrl(deterministicPath);
+      if (url.isEmpty || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('Upload succeeded but generated an invalid public URL.');
+      }
       return {
         'storagePath': deterministicPath,
-        'url': url.isNotEmpty ? url : filePath,
+        'url': url,
       };
     } catch (e) {
-      debugPrint('Supabase upload episode image warning: $e, using local file.');
-      return {
-        'storagePath': deterministicPath,
-        'url': filePath,
-      };
+      debugPrint('Supabase upload episode image error: $e');
+      if (e is AppFailure) rethrow;
+      throw _mapStorageError(e, 'upload episode illustration');
     }
   }
 
@@ -149,8 +169,7 @@ class SupabaseStorageService {
   }) async {
     final client = _client;
     if (client == null) {
-      debugPrint('SupabaseStorageService: Supabase not initialized, skipping PDF upload.');
-      return {};
+      throw const StorageFailure('Cloud storage is uninitialized. Please verify Supabase setup.');
     }
 
     final safeFileName = originalFileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
@@ -180,6 +199,9 @@ class SupabaseStorageService {
           );
 
       final url = getPublicUrl(deterministicPath);
+      if (url.isEmpty || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('PDF upload succeeded but generated an invalid public URL.');
+      }
       return {
         'storagePath': deterministicPath,
         'url': url,
@@ -187,7 +209,8 @@ class SupabaseStorageService {
       };
     } catch (e) {
       debugPrint('Supabase upload PDF error: $e');
-      throw UnknownFailure('Failed to upload PDF episode. Please check connection and try again.');
+      if (e is AppFailure) rethrow;
+      throw _mapStorageError(e, 'upload episode PDF');
     }
   }
 
@@ -199,6 +222,10 @@ class SupabaseStorageService {
     Uint8List? fileBytes,
   }) async {
     final client = _client;
+    if (client == null) {
+      throw const StorageFailure('Cloud storage is uninitialized. Please verify Supabase setup.');
+    }
+
     final fileName = filePath.split(Platform.isWindows ? '\\' : '/').last;
     final ext = fileName.split('.').last.toLowerCase();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -217,14 +244,6 @@ class SupabaseStorageService {
 
     validateImageFile(sizeBytes: bytes.length, fileName: fileName);
 
-    if (client == null) {
-      debugPrint('SupabaseStorageService: Supabase not initialized, using local gallery file.');
-      return {
-        'storagePath': deterministicPath,
-        'url': filePath,
-      };
-    }
-
     try {
       await client.storage.from(bucketName).uploadBinary(
             deterministicPath,
@@ -236,16 +255,17 @@ class SupabaseStorageService {
           );
 
       final url = getPublicUrl(deterministicPath);
+      if (url.isEmpty || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('Upload succeeded but generated an invalid public URL.');
+      }
       return {
         'storagePath': deterministicPath,
-        'url': url.isNotEmpty ? url : filePath,
+        'url': url,
       };
     } catch (e) {
-      debugPrint('Supabase upload novel gallery image warning: $e, using local file.');
-      return {
-        'storagePath': deterministicPath,
-        'url': filePath,
-      };
+      debugPrint('Supabase upload novel gallery image error: $e');
+      if (e is AppFailure) rethrow;
+      throw _mapStorageError(e, 'upload novel gallery image');
     }
   }
 
@@ -258,6 +278,10 @@ class SupabaseStorageService {
     Uint8List? fileBytes,
   }) async {
     final client = _client;
+    if (client == null) {
+      throw const StorageFailure('Cloud storage is uninitialized. Please verify Supabase setup.');
+    }
+
     final safeFileName = originalFileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
     final deterministicPath = 'novels/$novelId/documents/$safeFileName';
 
@@ -274,15 +298,6 @@ class SupabaseStorageService {
 
     validatePdfFile(sizeBytes: bytes.length, fileName: originalFileName);
 
-    if (client == null) {
-      debugPrint('SupabaseStorageService: Supabase not initialized, using local PDF file.');
-      return {
-        'storagePath': deterministicPath,
-        'url': filePath,
-        'fileName': originalFileName,
-      };
-    }
-
     try {
       await client.storage.from(bucketName).uploadBinary(
             deterministicPath,
@@ -294,18 +309,18 @@ class SupabaseStorageService {
           );
 
       final url = getPublicUrl(deterministicPath);
+      if (url.isEmpty || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('PDF upload succeeded but generated an invalid public URL.');
+      }
       return {
         'storagePath': deterministicPath,
-        'url': url.isNotEmpty ? url : filePath,
+        'url': url,
         'fileName': originalFileName,
       };
     } catch (e) {
-      debugPrint('Supabase upload novel PDF warning: $e, using local PDF file.');
-      return {
-        'storagePath': deterministicPath,
-        'url': filePath,
-        'fileName': originalFileName,
-      };
+      debugPrint('Supabase upload novel PDF error: $e');
+      if (e is AppFailure) rethrow;
+      throw _mapStorageError(e, 'upload novel PDF');
     }
   }
 
@@ -314,9 +329,17 @@ class SupabaseStorageService {
   /// Only works if the [bucketName] bucket is publicly accessible.
   /// For private buckets use [getSignedUrl] instead.
   String getPublicUrl(String storagePath) {
+    final cleanPath = storagePath.trim().replaceFirst(RegExp(r'^/+'), '');
+    if (cleanPath.isEmpty) return '';
+
     final client = _client;
-    if (client == null) return '';
-    return client.storage.from(bucketName).getPublicUrl(storagePath);
+    if (client != null) {
+      final url = client.storage.from(bucketName).getPublicUrl(cleanPath);
+      if (url.isNotEmpty) return url;
+    }
+
+    const defaultBaseUrl = 'https://kzouhytgrcujmqmznpqt.supabase.co';
+    return '$defaultBaseUrl/storage/v1/object/public/$bucketName/$cleanPath';
   }
 
   /// Creates a time-limited signed URL for a storage path.

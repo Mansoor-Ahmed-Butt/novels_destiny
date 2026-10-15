@@ -5,6 +5,7 @@ import '../../core/constants/app_icons.dart';
 import '../../domain/entities/user_entity.dart';
 import '../auth/controllers/auth_controller.dart';
 import '../home/pages/home_page.dart';
+import '../home/controllers/home_controller.dart';
 import '../library/pages/library_page.dart';
 import '../writer_dashboard/pages/writer_dashboard_page.dart';
 import '../writer_dashboard/controllers/writer_dashboard_controller.dart';
@@ -42,7 +43,9 @@ class MainShellController extends GetxController {
   }
 
   void _triggerTabRefresh(String route) {
-    if (route == '/writer' && Get.isRegistered<WriterDashboardController>()) {
+    if (route == '/home' && Get.isRegistered<HomeController>()) {
+      Get.find<HomeController>().loadHomeData(isSilent: true);
+    } else if (route == '/writer' && Get.isRegistered<WriterDashboardController>()) {
       Get.find<WriterDashboardController>().loadDashboard();
     } else if (route == '/admin' && Get.isRegistered<AdminDashboardController>()) {
       Get.find<AdminDashboardController>().loadDashboard();

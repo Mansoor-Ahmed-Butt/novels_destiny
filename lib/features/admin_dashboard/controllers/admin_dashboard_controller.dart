@@ -9,6 +9,8 @@ import '../../../domain/usecases/admin_usecases.dart';
 import '../../../domain/entities/episode_entity.dart';
 import '../../../core/services/logger_service.dart';
 import '../../../core/services/notification_service.dart';
+import '../../home/controllers/home_controller.dart';
+import '../../writer_dashboard/controllers/writer_dashboard_controller.dart';
 
 
 class AdminDashboardController extends GetxController {
@@ -26,6 +28,8 @@ class AdminDashboardController extends GetxController {
         _episodeUseCases = episodeUseCases ?? Get.find<EpisodeUseCases>();
 
   final RxBool isLoading = true.obs;
+  final RxBool isDeleting = false.obs;
+  final RxString deletingMessage = ''.obs;
   final Rx<PlatformAnalyticsEntity?> analytics = Rx<PlatformAnalyticsEntity?>(null);
   final RxList<UserEntity> users = <UserEntity>[].obs;
   final RxList<UserEntity> pendingWriters = <UserEntity>[].obs;
@@ -288,23 +292,45 @@ class AdminDashboardController extends GetxController {
 
   Future<void> deleteNovel(NovelEntity novel) async {
     try {
+      isDeleting.value = true;
+      deletingMessage.value = 'Deleting "${novel.title}" & purging storage...';
+
       await _novelUseCases.deleteNovel(novel.id);
       allNovels.removeWhere((n) => n.id == novel.id);
       pendingNovels.removeWhere((n) => n.id == novel.id);
+
+      // Clean up cached lists across active controllers immediately
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().purgeNovel(novel.id);
+        Get.find<HomeController>().loadHomeData();
+      }
+      if (Get.isRegistered<WriterDashboardController>()) {
+        Get.find<WriterDashboardController>().loadDashboard(force: true);
+      }
+
       final platformStats = await _adminUseCases.getPlatformAnalytics();
       analytics.value = platformStats;
+
+      isDeleting.value = false;
+      deletingMessage.value = '';
+
       Get.snackbar(
         'Novel Deleted',
         '${novel.title} and any associated PDF files were permanently removed from Supabase storage.',
         snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
+      isDeleting.value = false;
+      deletingMessage.value = '';
       Get.snackbar('Error', 'Failed to delete novel: $e');
     }
   }
 
   Future<void> deleteEpisode(String novelId, EpisodeEntity episode) async {
     try {
+      isDeleting.value = true;
+      deletingMessage.value = 'Deleting Chapter ${episode.episodeNumber}...';
+
       await _episodeUseCases.deleteEpisode(novelId, episode.id);
       final idx = allNovels.indexWhere((n) => n.id == novelId);
       if (idx >= 0) {
@@ -315,12 +341,18 @@ class AdminDashboardController extends GetxController {
       }
       final platformStats = await _adminUseCases.getPlatformAnalytics();
       analytics.value = platformStats;
+
+      isDeleting.value = false;
+      deletingMessage.value = '';
+
       Get.snackbar(
         'Episode Deleted',
         'Chapter ${episode.episodeNumber} and attached PDF files were permanently deleted.',
         snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
+      isDeleting.value = false;
+      deletingMessage.value = '';
       Get.snackbar('Error', 'Failed to delete episode: $e');
     }
   }

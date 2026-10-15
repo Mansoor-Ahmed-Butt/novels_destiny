@@ -12,14 +12,15 @@ class ContentBlockUrlResolver {
   /// [resolveUrl] (async) which falls back to a signed URL.
   static String resolvePublicUrl({String? url, String? storagePath}) {
     final trimmed = (url ?? '').trim();
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-
     final path = (storagePath ?? '').trim();
+
     if (path.isNotEmpty) {
       final public = SupabaseStorageService().getPublicUrl(path);
       if (public.isNotEmpty) return public;
+    }
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
     }
 
     return trimmed;

@@ -10,8 +10,8 @@ import '../../../core/services/logger_service.dart';
 import '../../../core/services/supabase_storage_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../domain/usecases/novel_usecases.dart';
+import '../../../core/errors/failures.dart';
 import '../../auth/controllers/auth_controller.dart';
-import '../../writer_dashboard/controllers/writer_dashboard_controller.dart';
 import '../../admin_dashboard/controllers/admin_dashboard_controller.dart';
 
 class EpisodeEditorController extends GetxController {
@@ -143,23 +143,18 @@ class EpisodeEditorController extends GetxController {
       if (picked == null || _isDisposed) return;
 
       isUploadingMedia.value = true;
-      Map<String, String> result = {};
-      try {
-        result = await _storageService.uploadEpisodeImage(
-          novelId: novelId,
-          episodeId: _currentEpisodeId,
-          filePath: picked.path,
-        );
-      } catch (uploadError) {
-        debugPrint('Episode image upload fallback: $uploadError');
-        result = {
-          'storagePath': 'novels/$novelId/episodes/$_currentEpisodeId/${picked.name}',
-          'url': picked.path,
-        };
-      }
+      final result = await _storageService.uploadEpisodeImage(
+        novelId: novelId,
+        episodeId: _currentEpisodeId,
+        filePath: picked.path,
+      );
       if (_isDisposed) return;
 
-      final url = result['url'] ?? picked.path;
+      final url = result['url'];
+      if (url == null || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('Upload completed without a valid cloud URL. Please verify your Supabase Storage settings.');
+      }
+
       final block = ContentBlockEntity(
         id: const Uuid().v4(),
         episodeId: _currentEpisodeId,
@@ -173,11 +168,17 @@ class EpisodeEditorController extends GetxController {
       blocks.add(block);
       hasUnsavedChanges.value = true;
       isUploadingMedia.value = false;
-      Get.snackbar('Image Added', 'Illustration added to chapter.');
+      Get.snackbar('Image Added', 'Illustration uploaded to Supabase and added to chapter.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       if (_isDisposed) return;
       isUploadingMedia.value = false;
-      Get.snackbar('Upload Error', e.toString());
+      final msg = e is AppFailure ? e.message : e.toString();
+      Get.snackbar(
+        'Upload Failed',
+        msg,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 6),
+      );
     }
   }
 
@@ -189,19 +190,43 @@ class EpisodeEditorController extends GetxController {
       isUploadingMedia.value = true;
       final file = files.first;
 
-      final uploadRes = await _storageService.uploadEpisodePdf(novelId: novelId, episodeId: _currentEpisodeId, filePath: file.path!, originalFileName: file.name);
+      final uploadRes = await _storageService.uploadEpisodePdf(
+        novelId: novelId,
+        episodeId: _currentEpisodeId,
+        filePath: file.path!,
+        originalFileName: file.name,
+      );
       if (_isDisposed) return;
 
-      final block = ContentBlockEntity(id: const Uuid().v4(), episodeId: _currentEpisodeId, type: ContentBlockType.pdf, order: blocks.length + 1, storagePath: uploadRes['storagePath'], url: uploadRes['url'], fileName: file.name);
+      final url = uploadRes['url'];
+      if (url == null || (!url.startsWith('http://') && !url.startsWith('https://'))) {
+        throw const StorageFailure('PDF upload completed without a valid cloud URL. Please verify your Supabase Storage settings.');
+      }
+
+      final block = ContentBlockEntity(
+        id: const Uuid().v4(),
+        episodeId: _currentEpisodeId,
+        type: ContentBlockType.pdf,
+        order: blocks.length + 1,
+        storagePath: uploadRes['storagePath'],
+        url: url,
+        fileName: file.name,
+      );
 
       blocks.add(block);
       hasUnsavedChanges.value = true;
       isUploadingMedia.value = false;
-      Get.snackbar('PDF Uploaded', 'PDF document added to chapter.');
+      Get.snackbar('PDF Uploaded', 'PDF document uploaded to Supabase and added to chapter.', snackPosition: SnackPosition.BOTTOM);
     } catch (e) {
       if (_isDisposed) return;
       isUploadingMedia.value = false;
-      Get.snackbar('Upload Error', e.toString());
+      final msg = e is AppFailure ? e.message : e.toString();
+      Get.snackbar(
+        'Upload Failed',
+        msg,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 6),
+      );
     }
   }
 
@@ -251,6 +276,24 @@ class EpisodeEditorController extends GetxController {
     if (!hasContent) {
       Get.snackbar('Validation', 'Please write some prose or add content blocks for this episode.');
       return;
+    }
+
+    if (publishImmediately) {
+      for (final b in blocks) {
+        if (b.type == ContentBlockType.image || b.type == ContentBlockType.pdf) {
+          final isHttp = b.url != null && (b.url!.startsWith('http://') || b.url!.startsWith('https://'));
+          final hasStoragePath = b.storagePath != null && b.storagePath!.trim().isNotEmpty;
+          if (!isHttp && !hasStoragePath) {
+            Get.snackbar(
+              'Cannot Publish',
+              'One or more media items were not uploaded to cloud storage. Please remove or re-upload them before publishing.',
+              snackPosition: SnackPosition.BOTTOM,
+              duration: const Duration(seconds: 5),
+            );
+            return;
+          }
+        }
+      }
     }
 
     try {
@@ -335,10 +378,7 @@ class EpisodeEditorController extends GetxController {
         );
       }
 
-      // ── Refresh dashboards so episode count updates immediately ──
-      if (Get.isRegistered<WriterDashboardController>()) {
-        Get.find<WriterDashboardController>().loadDashboard();
-      }
+      // ── Refresh admin dashboard if active (writer dashboard will refresh upon returning from navigation) ──
       if (Get.isRegistered<AdminDashboardController>()) {
         Get.find<AdminDashboardController>().loadDashboard();
       }
@@ -348,7 +388,7 @@ class EpisodeEditorController extends GetxController {
       _isCleaningUp = true;
 
       final tag = '$novelId-${existingEpisodeId ?? "__new__"}';
-      Get.back();
+      Get.back(result: true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (Get.isRegistered<EpisodeEditorController>(tag: tag)) {
           Get.delete<EpisodeEditorController>(tag: tag, force: true);

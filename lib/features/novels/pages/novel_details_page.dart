@@ -27,6 +27,9 @@ class NovelDetailsPage extends StatelessWidget {
 
     return AppScaffold(
       body: Obx(() {
+        if (ctrl.isDeletingNovel.value) {
+          return const AppLoadingState(message: 'Permanently deleting novel & purging files...');
+        }
         final state = ctrl.state.value;
         return switch (state) {
           NovelDetailsLoading() => const AppLoadingState(message: 'Opening story volume...'),

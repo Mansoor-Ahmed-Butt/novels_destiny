@@ -16,6 +16,7 @@ class ProfileController extends GetxController {
   final TextEditingController bioController = TextEditingController();
 
   final RxBool isEditing = false.obs;
+  final RxBool isSigningOut = false.obs;
 
   Rx<Locale> get currentLocale => _localizationService.rxLocale;
   bool get isUrdu => _localizationService.isUrdu;
@@ -85,8 +86,16 @@ class ProfileController extends GetxController {
   }
 
   Future<void> signOut() async {
-    await _authController.signOut();
-    Get.offAllNamed(AppRoutes.auth);
+    if (isSigningOut.value) return;
+    try {
+      isSigningOut.value = true;
+      await _authController.signOut();
+      Get.offAllNamed(AppRoutes.auth);
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to sign out: $e');
+    } finally {
+      isSigningOut.value = false;
+    }
   }
 
   @override

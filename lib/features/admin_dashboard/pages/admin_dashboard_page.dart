@@ -39,13 +39,15 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
 
         final stats = controller.analytics.value;
 
-        return RefreshIndicator(
-          onRefresh: controller.loadDashboard,
-          color: AppColors.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.l),
-            child: Center(
+        return Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: controller.loadDashboard,
+              color: AppColors.primary,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(AppSpacing.l),
+                child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: AppBreakpoints.maxCardGridWidth),
                 child: Column(
@@ -114,7 +116,44 @@ class AdminDashboardPage extends GetView<AdminDashboardController> {
               ),
             ),
           ),
-        );
+        ),
+        if (controller.isDeleting.value)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black54,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(AppRadii.card),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: AppColors.primary),
+                      const SizedBox(height: AppSpacing.m),
+                      Text(
+                        controller.deletingMessage.value.isNotEmpty
+                            ? controller.deletingMessage.value
+                            : 'Deleting & purging storage...',
+                        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
       }),
     );
   }

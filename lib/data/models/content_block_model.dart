@@ -1,4 +1,5 @@
 import '../../domain/entities/content_block_entity.dart';
+import '../../core/services/supabase_storage_service.dart';
 
 class ContentBlockModel extends ContentBlockEntity {
   const ContentBlockModel({
@@ -15,6 +16,15 @@ class ContentBlockModel extends ContentBlockEntity {
   });
 
   factory ContentBlockModel.fromJson(Map<String, dynamic> json) {
+    final rawUrl = json['url'] as String?;
+    final storagePath = json['storagePath'] as String?;
+    String? resolvedUrl = rawUrl;
+    if (storagePath != null && storagePath.trim().isNotEmpty) {
+      if (rawUrl == null || (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://'))) {
+        resolvedUrl = SupabaseStorageService().getPublicUrl(storagePath);
+      }
+    }
+
     return ContentBlockModel(
       id: json['id'] as String? ?? '',
       episodeId: json['episodeId'] as String? ?? '',
@@ -24,8 +34,8 @@ class ContentBlockModel extends ContentBlockEntity {
       ),
       order: json['order'] as int? ?? 0,
       content: json['content'] as String? ?? '',
-      storagePath: json['storagePath'] as String?,
-      url: json['url'] as String?,
+      storagePath: storagePath,
+      url: resolvedUrl,
       caption: json['caption'] as String?,
       fileName: json['fileName'] as String?,
       placement: json['placement'] as String?,

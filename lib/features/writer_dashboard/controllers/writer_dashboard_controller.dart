@@ -40,7 +40,15 @@ class WriterDashboardController extends GetxController {
     }
   }
 
-  Future<void> loadDashboard() async {
+  DateTime? _lastLoadTime;
+
+  Future<void> loadDashboard({bool force = false}) async {
+    final now = DateTime.now();
+    if (!force && _lastLoadTime != null && now.difference(_lastLoadTime!) < const Duration(milliseconds: 1500)) {
+      return;
+    }
+    _lastLoadTime = now;
+
     try {
       isLoading.value = true;
       final auth = Get.find<AuthController>();
@@ -74,22 +82,28 @@ class WriterDashboardController extends GetxController {
   }
 
   void createNewNovel() async {
-    await Get.toNamed(AppRoutes.novelEditor());
-    loadDashboard();
+    final result = await Get.toNamed(AppRoutes.novelEditor());
+    if (result == true) {
+      loadDashboard(force: true);
+    }
   }
 
   void editNovel(NovelEntity novel) async {
-    await Get.toNamed(AppRoutes.novelEditor(novelId: novel.id));
-    loadDashboard();
+    final result = await Get.toNamed(AppRoutes.novelEditor(novelId: novel.id));
+    if (result == true) {
+      loadDashboard(force: true);
+    }
   }
 
   void createEpisode(NovelEntity novel) async {
-    await Get.toNamed(AppRoutes.episodeEditor(novelId: novel.id));
-    loadDashboard();
+    final result = await Get.toNamed(AppRoutes.episodeEditor(novelId: novel.id));
+    if (result == true) {
+      loadDashboard(force: true);
+    }
   }
 
   void viewNovel(NovelEntity novel) async {
     await Get.toNamed(AppRoutes.novelDetails(novel.id));
-    loadDashboard();
+    loadDashboard(force: true);
   }
 }

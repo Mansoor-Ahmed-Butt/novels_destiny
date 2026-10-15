@@ -47,7 +47,7 @@ class WriterDashboardPage extends GetView<WriterDashboardController> {
                     // Header with Quick Action Buttons
                     AppPageHeader(
                       title: 'Author Studio',
-                      subtitle: 'Manage your stories, episodes, and reader engagement',
+                      subtitle: 'Manage stories,episodes, and reader engagement',
                       badgeText: 'WRITER',
                       trailing: Row(
                         children: [

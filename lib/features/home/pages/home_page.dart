@@ -88,52 +88,70 @@ class HomePage extends GetView<HomeController> {
                         const SizedBox(height: AppSpacing.l),
 
                         // Search Mode vs Normal Mode
-                        Obx(() {
-                          if (controller.isSearching.value) {
-                            return _buildSearchResults();
-                          }
+                        if (controller.isSearching.value)
+                          _buildSearchResults()
+                        else if (controller.selectedGenre.value != 'All')
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              GenreFilterSection(
+                                genres: controller.availableGenres,
+                                selectedGenre: controller.selectedGenre.value,
+                                onSelectGenre: controller.selectGenre,
+                              ),
+                              const SizedBox(height: AppSpacing.l),
+                              _buildGenreNovelsSection(),
+                            ],
+                          )
+                        else
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Genre filter chips
+                              GenreFilterSection(
+                                genres: controller.availableGenres,
+                                selectedGenre: controller.selectedGenre.value,
+                                onSelectGenre: controller.selectGenre,
+                              ),
+                              const SizedBox(height: AppSpacing.l),
 
-                          return Obx(() {
-                            final selectedGenre = controller.selectedGenre.value;
-
-                            if (selectedGenre != 'All') {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  GenreFilterSection(genres: controller.availableGenres, selectedGenre: selectedGenre, onSelectGenre: controller.selectGenre),
-                                  const SizedBox(height: AppSpacing.l),
-                                  _buildGenreNovelsSection(),
-                                ],
-                              );
-                            }
-
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Genre filter chips
-                                GenreFilterSection(genres: controller.availableGenres, selectedGenre: selectedGenre, onSelectGenre: controller.selectGenre),
-                                const SizedBox(height: AppSpacing.l),
-
-                                // Featured Banner Carousel — only render when novels are loaded
-                                Obx(() => HomeCarouselSlider(novels: List.unmodifiable(controller.featuredNovels), onNovelTap: controller.openNovel)),
+                              // Featured Banner Carousel — only render when novels are loaded
+                              if (controller.featuredNovels.isNotEmpty) ...[
+                                HomeCarouselSlider(
+                                  novels: List.unmodifiable(controller.featuredNovels),
+                                  onNovelTap: controller.openNovel,
+                                ),
                                 const SizedBox(height: AppSpacing.xl),
-
-                                // Continue Reading (if any)
-                                Obx(() => ContinueReadingSection(history: controller.readingHistory, novelMap: controller.historyNovelMap, onResumeTap: controller.resumeReading)),
-                                Obx(() => controller.readingHistory.isNotEmpty ? const SizedBox(height: AppSpacing.xl) : const SizedBox.shrink()),
-
-                                // Featured Hero Section
-                                Obx(() => HomeHeroSection(novels: List.unmodifiable(controller.featuredNovels), onNovelTap: controller.openNovel)),
-                                const SizedBox(height: AppSpacing.xxl),
-
-                                // Trending Grid
-                                Obx(() => TrendingNovelsSection(novels: List.unmodifiable(controller.trendingNovels), onNovelTap: controller.openNovel)),
-                                AdaptiveBannerSlot(placementKey: 'home_footer', userRole: user?.role),
-                                const SizedBox(height: AppSpacing.xxxl),
                               ],
-                            );
-                          });
-                        }),
+
+                              // Continue Reading (if any)
+                              if (controller.readingHistory.isNotEmpty) ...[
+                                ContinueReadingSection(
+                                  history: controller.readingHistory,
+                                  novelMap: controller.historyNovelMap,
+                                  onResumeTap: controller.resumeReading,
+                                ),
+                                const SizedBox(height: AppSpacing.xl),
+                              ],
+
+                              // Featured Hero Section
+                              if (controller.featuredNovels.isNotEmpty) ...[
+                                HomeHeroSection(
+                                  novels: List.unmodifiable(controller.featuredNovels),
+                                  onNovelTap: controller.openNovel,
+                                ),
+                                const SizedBox(height: AppSpacing.xxl),
+                              ],
+
+                              // Trending Grid
+                              TrendingNovelsSection(
+                                novels: List.unmodifiable(controller.trendingNovels),
+                                onNovelTap: controller.openNovel,
+                              ),
+                              AdaptiveBannerSlot(placementKey: 'home_footer', userRole: user?.role),
+                              const SizedBox(height: AppSpacing.xxxl),
+                            ],
+                          ),
                       ],
                     ),
                   ),

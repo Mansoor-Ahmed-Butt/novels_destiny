@@ -1,4 +1,5 @@
 import '../../domain/entities/novel_entity.dart';
+import '../../core/services/supabase_storage_service.dart';
 
 class NovelModel extends NovelEntity {
   const NovelModel({
@@ -36,6 +37,24 @@ class NovelModel extends NovelEntity {
   });
 
   factory NovelModel.fromJson(Map<String, dynamic> json) {
+    final rawCoverUrl = json['coverUrl'] as String? ?? '';
+    final coverStoragePath = json['coverStoragePath'] as String?;
+    String effectiveCoverUrl = rawCoverUrl;
+    if (coverStoragePath != null && coverStoragePath.trim().isNotEmpty) {
+      if (!rawCoverUrl.startsWith('http://') && !rawCoverUrl.startsWith('https://')) {
+        effectiveCoverUrl = SupabaseStorageService().getPublicUrl(coverStoragePath);
+      }
+    }
+
+    final rawPdfUrl = json['pdfUrl'] as String?;
+    final pdfStoragePath = json['pdfStoragePath'] as String?;
+    String? effectivePdfUrl = rawPdfUrl;
+    if (pdfStoragePath != null && pdfStoragePath.trim().isNotEmpty) {
+      if (rawPdfUrl == null || (!rawPdfUrl.startsWith('http://') && !rawPdfUrl.startsWith('https://'))) {
+        effectivePdfUrl = SupabaseStorageService().getPublicUrl(pdfStoragePath);
+      }
+    }
+
     return NovelModel(
       id: json['id'] as String? ?? '',
       writerId: json['writerId'] as String? ?? '',
@@ -44,8 +63,8 @@ class NovelModel extends NovelEntity {
       title: json['title'] as String? ?? '',
       titleLowercase: json['titleLowercase'] as String? ?? '',
       description: json['description'] as String? ?? '',
-      coverUrl: json['coverUrl'] as String? ?? '',
-      coverStoragePath: json['coverStoragePath'] as String?,
+      coverUrl: effectiveCoverUrl,
+      coverStoragePath: coverStoragePath,
       genreIds: (json['genreIds'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
@@ -69,8 +88,8 @@ class NovelModel extends NovelEntity {
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      pdfUrl: json['pdfUrl'] as String?,
-      pdfStoragePath: json['pdfStoragePath'] as String?,
+      pdfUrl: effectivePdfUrl,
+      pdfStoragePath: pdfStoragePath,
       pdfFileName: json['pdfFileName'] as String?,
       manuscriptContent: json['manuscriptContent'] as String?,
       publishedEpisodeCount: json['publishedEpisodeCount'] as int? ?? 0,
